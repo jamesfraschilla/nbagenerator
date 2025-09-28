@@ -1,0 +1,28 @@
+name: nba_scenario_generator
+description: Clutch Time Scenario Generator
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^3.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: Erbos
+      fonts:
+        - asset: assets/fonts/Erbos.ttf
+    - family: TimesSquare
+      fonts:
+        - asset: assets/fonts/TimesSquare.ttf
+  assets:
+    - assets/clock_bg_transparent_minimal.png
