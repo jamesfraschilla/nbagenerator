@@ -212,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 // Competition dropdown
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
                   child: Align(
                     alignment: Alignment.center,
                     child: IntrinsicWidth(
@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Competition',
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<Competition>(
@@ -262,11 +262,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontWeight: FontWeight.w800,
                                   fontFamily: 'TimesSquare',
                                   fontSize:
-                                      (Theme.of(context).textTheme.displayLarge?.fontSize ?? 54) + 6,
+                                      (Theme.of(context).textTheme.displayLarge?.fontSize ?? 54) + 2,
                                 ),
                             styleOverrides: const _ClockBoxStyle(
                               width: 170,
-                              height: 78,
+                              height: 70,
                               borderRadius: 0,
                               backgroundColor: Colors.black,
                               textColorOverride: Colors.white,
@@ -289,11 +289,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontFamily: 'TimesSquare',
                                   letterSpacing: -0.5,
                                   fontSize:
-                                      (Theme.of(context).textTheme.displayLarge?.fontSize ?? 54) + 10,
+                                      (Theme.of(context).textTheme.displayLarge?.fontSize ?? 54) + 4,
                                 ),
                             styleOverrides: const _ClockBoxStyle(
                               width: 90,
-                              height: 98,
+                              height: 90,
                               borderRadius: 16,
                               backgroundColor: Colors.transparent,
                               textColorOverride: null,
@@ -874,12 +874,12 @@ class _ClockDropdownState extends State<_ClockDropdown> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 48),
+          constraints: const BoxConstraints(minHeight: 44),
           child: InputDecorator(
             isFocused: _open,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             ).copyWith(labelText: widget.label, alignLabelWithHint: true),
             child: InkWell(
               key: _buttonKey,
@@ -996,12 +996,12 @@ class _ScoreDiffDropdownState extends State<_ScoreDiffDropdown> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 48),
+          constraints: const BoxConstraints(minHeight: 44),
           child: InputDecorator(
             isFocused: _open,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             ).copyWith(labelText: widget.label, alignLabelWithHint: true),
             child: InkWell(
               key: _buttonKey,
@@ -1372,27 +1372,54 @@ class _TeamPanel extends StatelessWidget {
         : Text(label,
             style:
                 theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 1.2));
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
-          child: SizedBox(
-            key: ValueKey(showArrow),
-            child: labelWidget,
+    final scheme = theme.colorScheme;
+    final panelColor = scheme.brightness == Brightness.dark
+        ? scheme.surfaceContainerHigh
+        : scheme.surfaceContainerHighest;
+    final borderColor = scheme.outlineVariant;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: panelColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.shadow.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+            child: SizedBox(
+              key: ValueKey(showArrow),
+              child: labelWidget,
+            ),
+          ),
+          const SizedBox(height: 6),
+        Text(
+          scoreText,
+          style: theme.textTheme.displayLarge?.copyWith(
+            fontFeatures: const [FontFeature.tabularFigures()],
+            fontWeight: FontWeight.w900,
+            fontFamily: 'TimesSquare',
+            fontSize: (theme.textTheme.displayLarge?.fontSize ?? 60) + 6,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(scoreText,
-            style: theme.textTheme.displayLarge
-                ?.copyWith(fontFeatures: const [FontFeature.tabularFigures()], fontWeight: FontWeight.w900)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _StatPill(title: 'FOULS', value: foulsText),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         _StatPill(title: 'TOL', value: timeoutsText),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -1423,6 +1450,8 @@ class _StatPill extends StatelessWidget {
           style: theme.textTheme.displayMedium?.copyWith(
             fontFeatures: const [FontFeature.tabularFigures()],
             fontWeight: FontWeight.w900,
+            fontFamily: 'TimesSquare',
+            fontSize: (theme.textTheme.displayMedium?.fontSize ?? 44) + 4,
           ),
         ),
       ],
