@@ -1347,9 +1347,9 @@ class _Scoreboard extends StatelessWidget {
                         compact: compact,
                       ),
                     ),
-                    SizedBox(width: middleSpacing),
+                    SizedBox(width: middleSpacing / 3),
                     Flexible(
-                      flex: compact ? 3 : 4,
+                      flex: compact ? 1 : 2,
                       child: _CenterPanel(
                         periodText: periodText,
                         shotClockText: shotClockText,
@@ -1358,7 +1358,7 @@ class _Scoreboard extends StatelessWidget {
                         compact: compact,
                       ),
                     ),
-                    SizedBox(width: middleSpacing),
+                    SizedBox(width: middleSpacing / 3),
                     Expanded(
                       child: _TeamPanel(
                         side: TeamSide.guest,
@@ -1452,31 +1452,50 @@ class _TeamPanel extends StatelessWidget {
           child: SizedBox(key: ValueKey(showArrow), child: labelWidget),
         ),
         SizedBox(height: compact ? 4 : 10),
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 14 : 20,
-            vertical: compact ? 6 : 10,
-          ),
-          decoration: BoxDecoration(
-            color: panelColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor, width: 2),
-          ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              scoreText,
-              style: theme.textTheme.displayMedium?.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                fontSize: (theme.textTheme.displayMedium?.fontSize ?? 48) +
-                    (compact ? -6 : -2),
-              ),
-            ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final baseFont = theme.textTheme.displayLarge?.fontSize ?? 60;
+              final widthPadding = constraints.maxWidth * 0.035;
+              final heightPadding = constraints.maxHeight * 0.1;
+              final usableWidth = constraints.maxWidth - (widthPadding * 2);
+              final fontSize = math.min(
+                constraints.maxHeight * 0.7,
+                usableWidth * 0.5,
+              );
+              return Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: panelColor,
+                  borderRadius:
+                      BorderRadius.circular(constraints.maxWidth * 0.22),
+                  border: Border.all(color: borderColor, width: 2.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                padding: EdgeInsets.symmetric(
+                  horizontal: widthPadding,
+                  vertical: heightPadding,
+                ),
+                child: Center(
+                  child: _BalancedScoreText(
+                    text: scoreText,
+                    baseFont: baseFont,
+                    targetFontSize:
+                        math.max(fontSize, baseFont + (compact ? 12 : 32)),
+                    color: Colors.white,
+                  ),
+                ),
+              );
+            },
           ),
         ),
-        SizedBox(height: compact ? 10 : 16),
+        SizedBox(height: compact ? 12 : 20),
         compact
             ? Column(
                 children: [
@@ -1539,9 +1558,9 @@ class _CenterPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final periodLabelStyle = theme.textTheme.bodyLarge?.copyWith(
+    final periodLabelStyle = theme.textTheme.labelLarge?.copyWith(
       fontWeight: FontWeight.w700,
-      letterSpacing: 1.0,
+      letterSpacing: 0.8,
       color: Colors.white,
     );
     final shotClockLabelStyle = theme.textTheme.labelMedium?.copyWith(
@@ -1562,11 +1581,11 @@ class _CenterPanel extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text('PERIOD', style: periodLabelStyle),
-        SizedBox(height: compact ? 6 : 12),
+        SizedBox(height: compact ? 4 : 8),
         Container(
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 14 : 22,
-            vertical: compact ? 6 : 10,
+            horizontal: compact ? 10 : 16,
+            vertical: compact ? 4 : 8,
           ),
           decoration: BoxDecoration(
             color: backgroundColor,
@@ -1577,16 +1596,17 @@ class _CenterPanel extends StatelessWidget {
             fit: BoxFit.scaleDown,
             child: Text(
               periodText,
-              style: theme.textTheme.displayMedium?.copyWith(
-                fontWeight: FontWeight.w900,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
                 color: Colors.white,
-                fontSize: (theme.textTheme.displayMedium?.fontSize ?? 42) +
-                    (compact ? -6 : -2),
+                fontFamily: 'TimesSquare',
+                fontSize: (theme.textTheme.headlineSmall?.fontSize ?? 32) +
+                    (compact ? -4 : -2),
               ),
             ),
           ),
         ),
-        SizedBox(height: compact ? 12 : 18),
+        SizedBox(height: compact ? 10 : 16),
         Text('SHOT CLOCK', style: shotClockLabelStyle),
         SizedBox(height: compact ? 3 : 8),
         _BoxedClockTight(
@@ -1635,18 +1655,17 @@ class _StatPill extends StatelessWidget {
       children: [
         Text(
           title,
-          style: theme.textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w700,
+          style: theme.textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w600,
             letterSpacing: 0.4,
             color: textColor.withOpacity(0.8),
-            fontSize: (theme.textTheme.labelLarge?.fontSize ?? 16),
           ),
         ),
-        SizedBox(height: compact ? 3 : 5),
+        SizedBox(height: compact ? 2 : 4),
         Container(
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 10 : 14,
-            vertical: compact ? 5 : 7,
+            horizontal: compact ? 8 : 12,
+            vertical: compact ? 4 : 6,
           ),
           decoration: BoxDecoration(
             color: boxColor,
@@ -1657,17 +1676,52 @@ class _StatPill extends StatelessWidget {
             fit: BoxFit.scaleDown,
             child: Text(
               value,
-              style: theme.textTheme.displayMedium?.copyWith(
+              style: theme.textTheme.headlineSmall?.copyWith(
                 fontFeatures: const [FontFeature.tabularFigures()],
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w700,
                 color: textColor,
-                fontSize: (theme.textTheme.displayMedium?.fontSize ?? 44) +
-                    (compact ? -6 : -2),
+                fontFamily: 'TimesSquare',
+                fontSize: (theme.textTheme.headlineSmall?.fontSize ?? 32) +
+                    (compact ? -4 : -2),
               ),
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _BalancedScoreText extends StatelessWidget {
+  final String text;
+  final double baseFont;
+  final double targetFontSize;
+  final Color color;
+  const _BalancedScoreText({
+    required this.text,
+    required this.baseFont,
+    required this.targetFontSize,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final digits = text.length;
+    final adjustments = {2: 1.0, 3: 0.9, 4: 0.8};
+    final scale = adjustments[digits] ?? 0.75;
+    final fontSize = targetFontSize * scale;
+
+    final theme = Theme.of(context);
+    return Text(
+      text,
+      style: theme.textTheme.displayLarge?.copyWith(
+        fontFeatures: const [FontFeature.tabularFigures()],
+        fontWeight: FontWeight.w900,
+        color: color,
+        letterSpacing: -2.5,
+        fontFamily: 'TimesSquare',
+        fontSize: math.max(fontSize, baseFont * scale),
+      ),
     );
   }
 }
