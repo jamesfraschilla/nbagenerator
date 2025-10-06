@@ -147,7 +147,8 @@ class ScenarioLogEntry {
   final DateTime createdAt;
   final Scenario scenario;
   final String notes;
-  ScenarioLogEntry({required this.createdAt, required this.scenario, required this.notes});
+  ScenarioLogEntry(
+      {required this.createdAt, required this.scenario, required this.notes});
 }
 
 class HistoryStore {
@@ -157,7 +158,8 @@ class HistoryStore {
       ValueNotifier<List<ScenarioLogEntry>>([]);
   void add(Scenario s, String notes) {
     final list = List<ScenarioLogEntry>.from(entries.value);
-    list.insert(0, ScenarioLogEntry(createdAt: DateTime.now(), scenario: s, notes: notes));
+    list.insert(0,
+        ScenarioLogEntry(createdAt: DateTime.now(), scenario: s, notes: notes));
     entries.value = list;
   }
 }
@@ -165,7 +167,8 @@ class HistoryStore {
 class HomeScreen extends StatefulWidget {
   final bool isDarkMode;
   final Future<void> Function() onToggleTheme;
-  const HomeScreen({super.key, required this.isDarkMode, required this.onToggleTheme});
+  const HomeScreen(
+      {super.key, required this.isDarkMode, required this.onToggleTheme});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -191,8 +194,12 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(widget.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-            tooltip: widget.isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+            icon: Icon(widget.isDarkMode
+                ? Icons.light_mode_outlined
+                : Icons.dark_mode_outlined),
+            tooltip: widget.isDarkMode
+                ? 'Switch to Light Mode'
+                : 'Switch to Dark Mode',
             onPressed: () {
               widget.onToggleTheme();
             },
@@ -200,8 +207,8 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: 'History',
-            onPressed: () =>
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
           ),
         ],
       ),
@@ -220,7 +227,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Competition',
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<Competition>(
@@ -233,7 +241,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ))
                                 .toList(),
                             onChanged: (c) {
-                              if (c != null) setState(() => controller.setCompetition(c));
+                              if (c != null)
+                                setState(() => controller.setCompetition(c));
                             },
                           ),
                         ),
@@ -242,82 +251,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                _RangeSelector(controller: controller, onChanged: () => setState(() {})),
+                _RangeSelector(
+                    controller: controller, onChanged: () => setState(() {})),
                 const SizedBox(height: 8),
 
-                // Game + Shot clock side by side with labels
-                Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Column(
-                        children: [
-                          Text("Game Clock", style: Theme.of(context).textTheme.labelMedium),
-                          const SizedBox(height: 2),
-                          _BoxedClockTight(
-                            text: has ? formatGameClockTenths(s.gameClockTenths) : '––',
-                            textStyle: Theme.of(context).textTheme.displaySmall?.copyWith(
-                                  fontFeatures: const [FontFeature.tabularFigures()],
-                                  fontWeight: FontWeight.w800,
-                                  fontFamily: 'TimesSquare',
-                                  fontSize:
-                                      (Theme.of(context).textTheme.displayLarge?.fontSize ?? 54) + 2,
-                                ),
-                            styleOverrides: const _ClockBoxStyle(
-                              width: 170,
-                              height: 70,
-                              borderRadius: 0,
-                              backgroundColor: Colors.black,
-                              textColorOverride: Colors.white,
-                              horizontalPadding: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 24),
-                      Column(
-                        children: [
-                          Text("Shot Clock", style: Theme.of(context).textTheme.labelMedium),
-                          const SizedBox(height: 2),
-                          _BoxedClockTight(
-                            text: (has && !s.hideShotClock) ? '${s.shotClockSeconds}' : '––',
-                            textStyle: Theme.of(context).textTheme.displaySmall?.copyWith(
-                                  fontFeatures: const [FontFeature.tabularFigures()],
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.red,
-                                  fontFamily: 'TimesSquare',
-                                  letterSpacing: -0.5,
-                                  fontSize:
-                                      (Theme.of(context).textTheme.displayLarge?.fontSize ?? 54) + 4,
-                                ),
-                            styleOverrides: const _ClockBoxStyle(
-                              width: 90,
-                              height: 90,
-                              borderRadius: 16,
-                              backgroundColor: Colors.transparent,
-                              textColorOverride: null,
-                              horizontalPadding: 4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Period: ${periodLabel(s.period)}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-
-                // Middle scoreboard
+                // Scoreboard
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: _Scoreboard(controller: controller),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0, vertical: 8.0),
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: FractionallySizedBox(
+                        widthFactor: 0.98,
+                        child: AspectRatio(
+                          aspectRatio: 16 / 18,
+                          child: _Scoreboard(controller: controller),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -335,7 +286,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: _isAnimating ? null : () => _handleGenerate(),
+                          onPressed:
+                              _isAnimating ? null : () => _handleGenerate(),
                           icon: const Icon(Icons.play_arrow_rounded),
                           label: Text(has ? 'Re-roll in Range' : 'Generate'),
                         ),
@@ -345,20 +297,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: OutlinedButton.icon(
                           onPressed: has && !_isAnimating
                               ? () async {
-                                  final updated = await Navigator.of(context).push<Scenario>(
+                                  final updated = await Navigator.of(context)
+                                      .push<Scenario>(
                                     MaterialPageRoute(
                                         builder: (_) => EditScenarioScreen(
                                               initial: s,
-                                              competition: controller.settings.competition,
+                                              competition: controller
+                                                  .settings.competition,
                                             )),
                                   );
                                   if (updated != null) {
                                     setState(() {
-                                      if (controller.settings.competition == Competition.highSchool) {
+                                      if (controller.settings.competition ==
+                                          Competition.highSchool) {
                                         controller
-                                            .setForceHideShotClockHighSchool(updated.hideShotClock);
+                                            .setForceHideShotClockHighSchool(
+                                                updated.hideShotClock);
                                       } else {
-                                        controller.setForceHideShotClockHighSchool(false);
+                                        controller
+                                            .setForceHideShotClockHighSchool(
+                                                false);
                                       }
                                       controller.setScenario(updated);
                                     });
@@ -378,9 +336,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   child: SizedBox(
                     width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed:
-                        has && !_isAnimating ? () => _openSaveDialog(context, controller.scenario) : null,
+                    child: OutlinedButton.icon(
+                      onPressed: has && !_isAnimating
+                          ? () => _openSaveDialog(context, controller.scenario)
+                          : null,
                       icon: const Icon(Icons.save_alt_outlined),
                       label: const Text('Save Scenario'),
                     ),
@@ -468,14 +427,18 @@ class _HomeScreenState extends State<HomeScreen> {
           controller: controllerNotes,
           maxLines: 6,
           decoration: const InputDecoration(
-            hintText: 'What happened in practice? Thoughts, outcomes, next drills...',
+            hintText:
+                'What happened in practice? Thoughts, outcomes, next drills...',
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel')),
           FilledButton(
-              onPressed: () => Navigator.of(context).pop(controllerNotes.text.trim()),
+              onPressed: () =>
+                  Navigator.of(context).pop(controllerNotes.text.trim()),
               child: const Text('Save')),
         ],
       ),
@@ -486,7 +449,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (result != null && result.isNotEmpty) {
       HistoryStore.instance.add(scenario, result);
       if (!context.mounted) return;
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen()));
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const HistoryScreen()));
     }
   }
 }
@@ -554,7 +518,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     padding: const EdgeInsets.all(12),
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) => _HistoryCard(entry: filtered[i]),
+                    itemBuilder: (context, i) =>
+                        _HistoryCard(entry: filtered[i]),
                   );
                 },
               ),
@@ -587,7 +552,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     return list.where((e) {
       if (!inTime(e.createdAt)) return false;
-      if (_startType != null && e.scenario.startType != _startType) return false;
+      if (_startType != null && e.scenario.startType != _startType)
+        return false;
       if (!inScore(e.scenario)) return false;
       if (_query.isNotEmpty) {
         final q = _query.toLowerCase();
@@ -599,17 +565,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _timeDropdown() {
     return InputDecorator(
-      decoration:
-          const InputDecoration(labelText: 'Time Range', border: OutlineInputBorder()),
+      decoration: const InputDecoration(
+          labelText: 'Time Range', border: OutlineInputBorder()),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<TimeFilter>(
           value: _timeFilter,
           isExpanded: true,
           items: const [
             DropdownMenuItem(value: TimeFilter.all, child: Text('All time')),
-            DropdownMenuItem(value: TimeFilter.last24h, child: Text('Last 24 hours')),
-            DropdownMenuItem(value: TimeFilter.last7d, child: Text('Last 7 days')),
-            DropdownMenuItem(value: TimeFilter.last30d, child: Text('Last 30 days')),
+            DropdownMenuItem(
+                value: TimeFilter.last24h, child: Text('Last 24 hours')),
+            DropdownMenuItem(
+                value: TimeFilter.last7d, child: Text('Last 7 days')),
+            DropdownMenuItem(
+                value: TimeFilter.last30d, child: Text('Last 30 days')),
           ],
           onChanged: (v) => setState(() => _timeFilter = v ?? TimeFilter.all),
         ),
@@ -619,13 +588,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _startTypeDropdown() {
     final items = <DropdownMenuItem<StartType?>>[
-      const DropdownMenuItem<StartType?>(value: null, child: Text('All start types')),
-      ...StartType.values.map((st) =>
-          DropdownMenuItem<StartType?>(value: st, child: Text(startTypeLabel(st)))),
+      const DropdownMenuItem<StartType?>(
+          value: null, child: Text('All start types')),
+      ...StartType.values.map((st) => DropdownMenuItem<StartType?>(
+          value: st, child: Text(startTypeLabel(st)))),
     ];
     return InputDecorator(
-      decoration:
-          const InputDecoration(labelText: 'Start Type', border: OutlineInputBorder()),
+      decoration: const InputDecoration(
+          labelText: 'Start Type', border: OutlineInputBorder()),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<StartType?>(
           value: _startType,
@@ -695,7 +665,8 @@ class _HistoryCard extends StatelessWidget {
                 Text(timestamp, style: Theme.of(context).textTheme.labelMedium),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     color: Theme.of(context).colorScheme.secondaryContainer,
@@ -713,7 +684,8 @@ class _HistoryCard extends StatelessWidget {
                 _kv('Game', formatGameClockTenths(s.gameClockTenths)),
                 _kv('Shot', (s.hideShotClock ? '––' : '${s.shotClockSeconds}')),
                 _kv('Period', periodLabel(s.period)),
-                _kv('Possession', s.possession == TeamSide.home ? 'Home' : 'Guest'),
+                _kv('Possession',
+                    s.possession == TeamSide.home ? 'Home' : 'Guest'),
                 _kv('Score', '${s.homeScore} - ${s.guestScore}'),
                 _kv('Fouls (H/G)', '${s.homeFouls}/${s.guestFouls}'),
                 _kv('TOL (H/G)', '${s.homeTimeouts}/${s.guestTimeouts}'),
@@ -886,14 +858,19 @@ class _ClockDropdownState extends State<_ClockDropdown> {
               onTap: () async {
                 setState(() => _open = true);
 
-                final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-                final buttonBox = _buttonKey.currentContext!.findRenderObject() as RenderBox;
-                final Offset topLeft = buttonBox.localToGlobal(Offset.zero, ancestor: overlay);
-                final Offset topRight =
-                    buttonBox.localToGlobal(Offset(buttonBox.size.width, 0), ancestor: overlay);
+                final overlay =
+                    Overlay.of(context).context.findRenderObject() as RenderBox;
+                final buttonBox =
+                    _buttonKey.currentContext!.findRenderObject() as RenderBox;
+                final Offset topLeft =
+                    buttonBox.localToGlobal(Offset.zero, ancestor: overlay);
+                final Offset topRight = buttonBox.localToGlobal(
+                    Offset(buttonBox.size.width, 0),
+                    ancestor: overlay);
                 final double buttonBottom = topLeft.dy + buttonBox.size.height;
 
-                final double menuWidth = math.max(_menuWidth, buttonBox.size.width);
+                final double menuWidth =
+                    math.max(_menuWidth, buttonBox.size.width);
                 double left = topRight.dx - menuWidth;
                 if (left < 0) left = 0;
                 if (left + menuWidth > overlay.size.width) {
@@ -921,8 +898,8 @@ class _ClockDropdownState extends State<_ClockDropdown> {
                                   option.label,
                                   textAlign: TextAlign.right,
                                   style: option == widget.value
-                                      ? theme.textTheme.bodyMedium
-                                          ?.copyWith(fontWeight: FontWeight.bold)
+                                      ? theme.textTheme.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.bold)
                                       : theme.textTheme.bodyMedium,
                                 ),
                               ),
@@ -947,8 +924,8 @@ class _ClockDropdownState extends State<_ClockDropdown> {
                         selectedLabel,
                         overflow: TextOverflow.ellipsis,
                         softWrap: false,
-                        style:
-                            theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -1008,9 +985,12 @@ class _ScoreDiffDropdownState extends State<_ScoreDiffDropdown> {
               onTap: () async {
                 setState(() => _open = true);
 
-                final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-                final buttonBox = _buttonKey.currentContext!.findRenderObject() as RenderBox;
-                final Offset topLeft = buttonBox.localToGlobal(Offset.zero, ancestor: overlay);
+                final overlay =
+                    Overlay.of(context).context.findRenderObject() as RenderBox;
+                final buttonBox =
+                    _buttonKey.currentContext!.findRenderObject() as RenderBox;
+                final Offset topLeft =
+                    buttonBox.localToGlobal(Offset.zero, ancestor: overlay);
                 final double buttonBottom = topLeft.dy + buttonBox.size.height;
                 final double menuWidth = buttonBox.size.width;
                 double left = topLeft.dx;
@@ -1038,8 +1018,8 @@ class _ScoreDiffDropdownState extends State<_ScoreDiffDropdown> {
                                 child: Text(
                                   option.label,
                                   style: option == widget.value
-                                      ? theme.textTheme.bodyMedium
-                                          ?.copyWith(fontWeight: FontWeight.bold)
+                                      ? theme.textTheme.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.bold)
                                       : theme.textTheme.bodyMedium,
                                 ),
                               ),
@@ -1062,8 +1042,8 @@ class _ScoreDiffDropdownState extends State<_ScoreDiffDropdown> {
                       selectedLabel,
                       overflow: TextOverflow.ellipsis,
                       softWrap: false,
-                      style:
-                          theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1123,14 +1103,19 @@ class _StartTypeDropdownState extends State<_StartTypeDropdown> {
               onTap: () async {
                 setState(() => _open = true);
 
-                final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-                final buttonBox = _buttonKey.currentContext!.findRenderObject() as RenderBox;
-                final Offset topLeft = buttonBox.localToGlobal(Offset.zero, ancestor: overlay);
-                final Offset topRight =
-                    buttonBox.localToGlobal(Offset(buttonBox.size.width, 0), ancestor: overlay);
+                final overlay =
+                    Overlay.of(context).context.findRenderObject() as RenderBox;
+                final buttonBox =
+                    _buttonKey.currentContext!.findRenderObject() as RenderBox;
+                final Offset topLeft =
+                    buttonBox.localToGlobal(Offset.zero, ancestor: overlay);
+                final Offset topRight = buttonBox.localToGlobal(
+                    Offset(buttonBox.size.width, 0),
+                    ancestor: overlay);
                 final double buttonBottom = topLeft.dy + buttonBox.size.height;
 
-                final double menuWidth = math.max(_menuWidth, buttonBox.size.width);
+                final double menuWidth =
+                    math.max(_menuWidth, buttonBox.size.width);
                 double left = topRight.dx - menuWidth;
                 if (left < 0) left = 0;
                 if (left + menuWidth > overlay.size.width) {
@@ -1158,8 +1143,8 @@ class _StartTypeDropdownState extends State<_StartTypeDropdown> {
                                   option.label,
                                   textAlign: TextAlign.right,
                                   style: option == widget.value
-                                      ? theme.textTheme.bodyMedium
-                                          ?.copyWith(fontWeight: FontWeight.bold)
+                                      ? theme.textTheme.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.bold)
                                       : theme.textTheme.bodyMedium,
                                 ),
                               ),
@@ -1184,8 +1169,8 @@ class _StartTypeDropdownState extends State<_StartTypeDropdown> {
                         selectedLabel,
                         overflow: TextOverflow.ellipsis,
                         softWrap: false,
-                        style:
-                            theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -1226,7 +1211,8 @@ class _BoxedClockTight extends StatelessWidget {
   final String text;
   final TextStyle? textStyle;
   final _ClockBoxStyle? styleOverrides;
-  const _BoxedClockTight({required this.text, this.textStyle, this.styleOverrides});
+  const _BoxedClockTight(
+      {required this.text, this.textStyle, this.styleOverrides});
 
   @override
   Widget build(BuildContext context) {
@@ -1245,22 +1231,35 @@ class _BoxedClockTight extends StatelessWidget {
       color: style.textColorOverride ?? textStyle?.color,
     );
 
-    return Center(
-      child: Container(
-        width: style.width,
-        height: style.height,
-        alignment: Alignment.center,
-        padding: EdgeInsets.symmetric(horizontal: style.horizontalPadding),
-        decoration: BoxDecoration(
-          color: style.backgroundColor,
-          borderRadius: BorderRadius.circular(style.borderRadius),
-          border: Border.all(color: scheme.onSurface.withValues(alpha: 0.25), width: 2),
-        ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(text, style: effectiveStyle, textAlign: TextAlign.center),
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final effectiveWidth = constraints.maxWidth.isFinite
+            ? math.min(style.width, constraints.maxWidth)
+            : style.width;
+        final effectiveHeight = constraints.maxHeight.isFinite
+            ? math.min(style.height, constraints.maxHeight)
+            : style.height;
+
+        return Center(
+          child: Container(
+            width: effectiveWidth,
+            height: effectiveHeight,
+            alignment: Alignment.center,
+            padding: EdgeInsets.symmetric(horizontal: style.horizontalPadding),
+            decoration: BoxDecoration(
+              color: style.backgroundColor,
+              borderRadius: BorderRadius.circular(style.borderRadius),
+              border: Border.all(
+                  color: scheme.onSurface.withValues(alpha: 0.25), width: 2),
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(text,
+                  style: effectiveStyle, textAlign: TextAlign.center),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1271,58 +1270,116 @@ class _Scoreboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final s = controller.scenario;
     final has = controller.hasScenario;
     final rules = controller.currentRules;
     final showArrow = rules.showPossessionArrow && has;
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.surfaceContainerHighest,
-            Theme.of(context).colorScheme.surface,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: const [BoxShadow(blurRadius: 20, offset: Offset(0, 8), color: Colors.black12)],
-      ),
-      padding: const EdgeInsets.all(12),
-      child: FittedBox(
-        fit: BoxFit.contain,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Transform.translate(
-              offset: const Offset(-12, 0),
-              child: _TeamPanel(
-                side: TeamSide.home,
-                scoreText: has ? '${s.homeScore}' : '––',
-                foulsText: has ? '${s.homeFouls}' : '––',
-                timeoutsText: has ? '${s.homeTimeouts}' : '––',
-                showPossessionIndicator: showArrow,
-                hasPossession: has && s.possessionArrow == TeamSide.home,
+    final gameClockText = has ? formatGameClockTenths(s.gameClockTenths) : '––';
+    final periodText = has ? periodLabel(s.period) : '––';
+    final shotClockText =
+        (has && !s.hideShotClock) ? '${s.shotClockSeconds}' : '––';
+    const backgroundColor = Color(0xFF111111);
+    const insetColor = Color(0xFF1E1E1E);
+    final borderColor = Colors.white.withOpacity(0.22);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 520;
+        final horizontalPadding = compact ? 12.0 : 22.0;
+        final verticalPadding = compact ? 18.0 : 32.0;
+        final middleSpacing = compact ? 10.0 : 22.0;
+        final gameClockStyle = _ClockBoxStyle(
+          width: compact ? 150 : 180,
+          height: compact ? 50 : 60,
+          borderRadius: compact ? 14 : 16,
+          backgroundColor: insetColor,
+          textColorOverride: Colors.white,
+          horizontalPadding: compact ? 8 : 12,
+        );
+
+        return Container(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(compact ? 22 : 28),
+            border: Border.all(color: borderColor, width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 12),
               ),
-            ),
-            const SizedBox(width: 28),
-            Container(width: 1.0, height: 180, color: Theme.of(context).dividerColor),
-            const SizedBox(width: 28),
-            Transform.translate(
-              offset: const Offset(12, 0),
-              child: _TeamPanel(
-                side: TeamSide.guest,
-                scoreText: has ? '${s.guestScore}' : '––',
-                foulsText: has ? '${s.guestFouls}' : '––',
-                timeoutsText: has ? '${s.guestTimeouts}' : '––',
-                showPossessionIndicator: showArrow,
-                hasPossession: has && s.possessionArrow == TeamSide.guest,
+            ],
+          ),
+          padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding, vertical: verticalPadding),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _BoxedClockTight(
+                text: gameClockText,
+                textStyle: theme.textTheme.displayMedium?.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'TimesSquare',
+                  fontSize: (theme.textTheme.displayMedium?.fontSize ?? 40) +
+                      (compact ? -2 : 0),
+                ),
+                styleOverrides: gameClockStyle,
               ),
-            ),
-          ],
-        ),
-      ),
+              SizedBox(height: compact ? 10 : 16),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _TeamPanel(
+                        side: TeamSide.home,
+                        scoreText: has ? '${s.homeScore}' : '––',
+                        foulsText: has ? '${s.homeFouls}' : '––',
+                        timeouts: has ? s.homeTimeouts : null,
+                        showPossessionIndicator: showArrow,
+                        hasPossession:
+                            has && s.possessionArrow == TeamSide.home,
+                        panelColor: insetColor,
+                        borderColor: borderColor,
+                        compact: compact,
+                      ),
+                    ),
+                    SizedBox(width: middleSpacing),
+                    Flexible(
+                      flex: compact ? 3 : 4,
+                      child: _CenterPanel(
+                        periodText: periodText,
+                        shotClockText: shotClockText,
+                        backgroundColor: insetColor,
+                        borderColor: borderColor,
+                        compact: compact,
+                      ),
+                    ),
+                    SizedBox(width: middleSpacing),
+                    Expanded(
+                      child: _TeamPanel(
+                        side: TeamSide.guest,
+                        scoreText: has ? '${s.guestScore}' : '––',
+                        foulsText: has ? '${s.guestFouls}' : '––',
+                        timeouts: has ? s.guestTimeouts : null,
+                        showPossessionIndicator: showArrow,
+                        hasPossession:
+                            has && s.possessionArrow == TeamSide.guest,
+                        panelColor: insetColor,
+                        borderColor: borderColor,
+                        compact: compact,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -1331,17 +1388,23 @@ class _TeamPanel extends StatelessWidget {
   final TeamSide side;
   final String scoreText;
   final String foulsText;
-  final String timeoutsText;
+  final int? timeouts;
   final bool showPossessionIndicator;
   final bool hasPossession;
+  final Color panelColor;
+  final Color borderColor;
+  final bool compact;
 
   const _TeamPanel({
     required this.side,
     required this.scoreText,
     required this.foulsText,
-    required this.timeoutsText,
+    required this.timeouts,
     this.showPossessionIndicator = false,
     this.hasPossession = false,
+    required this.panelColor,
+    required this.borderColor,
+    this.compact = false,
   });
 
   @override
@@ -1350,76 +1413,196 @@ class _TeamPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final showArrow = showPossessionIndicator && hasPossession;
     final arrowIcon = Icon(
-      side == TeamSide.home ? Icons.arrow_back_ios_new_rounded : Icons.arrow_forward_ios_rounded,
+      side == TeamSide.home
+          ? Icons.arrow_back_ios_new_rounded
+          : Icons.arrow_forward_ios_rounded,
       color: theme.colorScheme.primary,
-      size: 22,
+      size: compact ? 16 : 18,
+    );
+    final labelStyle = theme.textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w800,
+      letterSpacing: 1.0,
+      color: Colors.white,
     );
     final labelWidget = showArrow
         ? Row(
             mainAxisSize: MainAxisSize.min,
             children: side == TeamSide.home
-                ? [arrowIcon, const SizedBox(width: 4), Text(label,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                    ))]
-                : [Text(label,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                    )), const SizedBox(width: 4), arrowIcon],
+                ? [
+                    arrowIcon,
+                    const SizedBox(width: 4),
+                    Text(label, style: labelStyle)
+                  ]
+                : [
+                    Text(label, style: labelStyle),
+                    const SizedBox(width: 4),
+                    arrowIcon
+                  ],
           )
-        : Text(label,
-            style:
-                theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 1.2));
-    final scheme = theme.colorScheme;
-    final panelColor = scheme.brightness == Brightness.dark
-        ? scheme.surfaceContainerHigh
-        : scheme.surfaceContainerHighest;
-    final borderColor = scheme.outlineVariant;
+        : Text(label, style: labelStyle);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: panelColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.shadow.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
+          child: SizedBox(key: ValueKey(showArrow), child: labelWidget),
+        ),
+        SizedBox(height: compact ? 4 : 10),
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 14 : 20,
+            vertical: compact ? 6 : 10,
           ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
-            child: SizedBox(
-              key: ValueKey(showArrow),
-              child: labelWidget,
+          decoration: BoxDecoration(
+            color: panelColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor, width: 2),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              scoreText,
+              style: theme.textTheme.displayMedium?.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                fontSize: (theme.textTheme.displayMedium?.fontSize ?? 48) +
+                    (compact ? -6 : -2),
+              ),
             ),
           ),
-          const SizedBox(height: 6),
-        Text(
-          scoreText,
-          style: theme.textTheme.displayLarge?.copyWith(
-            fontFeatures: const [FontFeature.tabularFigures()],
-            fontWeight: FontWeight.w900,
-            fontFamily: 'TimesSquare',
-            fontSize: (theme.textTheme.displayLarge?.fontSize ?? 60) + 6,
+        ),
+        SizedBox(height: compact ? 10 : 16),
+        compact
+            ? Column(
+                children: [
+                  _StatPill(
+                    title: 'FLS',
+                    value: foulsText,
+                    foreground: Colors.white,
+                    background: panelColor,
+                    borderColorOverride: borderColor,
+                    compact: true,
+                  ),
+                  const SizedBox(height: 8),
+                  _TimeoutPill(
+                    foreground: Colors.white,
+                    background: panelColor,
+                    borderColor: borderColor,
+                    compact: true,
+                    timeouts: timeouts,
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _StatPill(
+                    title: 'FLS',
+                    value: foulsText,
+                    foreground: Colors.white,
+                    background: panelColor,
+                    borderColorOverride: borderColor,
+                  ),
+                  const SizedBox(width: 14),
+                  _TimeoutPill(
+                    foreground: Colors.white,
+                    background: panelColor,
+                    borderColor: borderColor,
+                    timeouts: timeouts,
+                  ),
+                ],
+              ),
+      ],
+    );
+  }
+}
+
+class _CenterPanel extends StatelessWidget {
+  final String periodText;
+  final String shotClockText;
+  final Color backgroundColor;
+  final Color borderColor;
+  final bool compact;
+  const _CenterPanel({
+    required this.periodText,
+    required this.shotClockText,
+    required this.backgroundColor,
+    required this.borderColor,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final periodLabelStyle = theme.textTheme.bodyLarge?.copyWith(
+      fontWeight: FontWeight.w700,
+      letterSpacing: 1.0,
+      color: Colors.white,
+    );
+    final shotClockLabelStyle = theme.textTheme.labelMedium?.copyWith(
+      fontWeight: FontWeight.w700,
+      letterSpacing: 1.0,
+      color: Colors.white,
+    );
+    final shotClockStyle = _ClockBoxStyle(
+      width: compact ? 100 : 130,
+      height: compact ? 52 : 64,
+      borderRadius: compact ? 12 : 16,
+      backgroundColor: backgroundColor,
+      textColorOverride: null,
+      horizontalPadding: compact ? 8 : 12,
+    );
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text('PERIOD', style: periodLabelStyle),
+        SizedBox(height: compact ? 6 : 12),
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 14 : 22,
+            vertical: compact ? 6 : 10,
+          ),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor, width: 2),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              periodText,
+              style: theme.textTheme.displayMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                fontSize: (theme.textTheme.displayMedium?.fontSize ?? 42) +
+                    (compact ? -6 : -2),
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 16),
-        _StatPill(title: 'FOULS', value: foulsText),
-        const SizedBox(height: 12),
-        _StatPill(title: 'TOL', value: timeoutsText),
-        ],
-      ),
+        SizedBox(height: compact ? 12 : 18),
+        Text('SHOT CLOCK', style: shotClockLabelStyle),
+        SizedBox(height: compact ? 3 : 8),
+        _BoxedClockTight(
+          text: shotClockText,
+          textStyle: theme.textTheme.displaySmall?.copyWith(
+            fontFeatures: const [FontFeature.tabularFigures()],
+            fontWeight: FontWeight.w900,
+            color: Colors.red,
+            fontFamily: 'TimesSquare',
+            letterSpacing: -0.4,
+            fontSize: (theme.textTheme.displayMedium?.fontSize ?? 36) +
+                (compact ? -2 : 2),
+          ),
+          styleOverrides: shotClockStyle,
+        ),
+      ],
     );
   }
 }
@@ -1427,11 +1610,26 @@ class _TeamPanel extends StatelessWidget {
 class _StatPill extends StatelessWidget {
   final String title;
   final String value;
-  const _StatPill({required this.title, required this.value});
+  final Color? foreground;
+  final Color? background;
+  final Color? borderColorOverride;
+  final bool compact;
+  const _StatPill({
+    required this.title,
+    required this.value,
+    this.foreground,
+    this.background,
+    this.borderColorOverride,
+    this.compact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final textColor = foreground ?? theme.colorScheme.onSurfaceVariant;
+    final boxColor = background ?? theme.colorScheme.surface;
+    final outlineColor =
+        borderColorOverride ?? theme.colorScheme.outlineVariant;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1439,22 +1637,129 @@ class _StatPill extends StatelessWidget {
           title,
           style: theme.textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
-            color: theme.colorScheme.onSurfaceVariant,
-            fontSize: (theme.textTheme.labelLarge?.fontSize ?? 16) + 2,
+            letterSpacing: 0.4,
+            color: textColor.withOpacity(0.8),
+            fontSize: (theme.textTheme.labelLarge?.fontSize ?? 16),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: theme.textTheme.displayMedium?.copyWith(
-            fontFeatures: const [FontFeature.tabularFigures()],
-            fontWeight: FontWeight.w900,
-            fontFamily: 'TimesSquare',
-            fontSize: (theme.textTheme.displayMedium?.fontSize ?? 44) + 4,
+        SizedBox(height: compact ? 3 : 5),
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 10 : 14,
+            vertical: compact ? 5 : 7,
+          ),
+          decoration: BoxDecoration(
+            color: boxColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: outlineColor, width: 2),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: theme.textTheme.displayMedium?.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+                fontWeight: FontWeight.w900,
+                color: textColor,
+                fontSize: (theme.textTheme.displayMedium?.fontSize ?? 44) +
+                    (compact ? -6 : -2),
+              ),
+            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TimeoutPill extends StatelessWidget {
+  final int? timeouts;
+  final Color foreground;
+  final Color background;
+  final Color borderColor;
+  final bool compact;
+  const _TimeoutPill({
+    required this.timeouts,
+    required this.foreground,
+    required this.background,
+    required this.borderColor,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final labelStyle = theme.textTheme.labelMedium?.copyWith(
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.6,
+      color: foreground.withOpacity(0.8),
+    );
+    final int active = (timeouts ?? 0).clamp(0, 5);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('T.O.L.', style: labelStyle),
+        SizedBox(height: compact ? 4 : 6),
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 8 : 12,
+            vertical: compact ? 4 : 6,
+          ),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor, width: 2),
+          ),
+          constraints: BoxConstraints(maxWidth: compact ? 58 : 78),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: _TimeoutDots(
+              activeCount: active,
+              totalCount: 5,
+              activeColor: foreground,
+              inactiveColor: foreground.withOpacity(0.25),
+              dotSize: compact ? 4.5 : 6.5,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TimeoutDots extends StatelessWidget {
+  final int activeCount;
+  final int totalCount;
+  final Color activeColor;
+  final Color inactiveColor;
+  final double dotSize;
+  const _TimeoutDots({
+    required this.activeCount,
+    required this.totalCount,
+    required this.activeColor,
+    required this.inactiveColor,
+    required this.dotSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(totalCount, (index) {
+        final color = index < activeCount ? activeColor : inactiveColor;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 1.0),
+          child: Container(
+            width: dotSize,
+            height: dotSize,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+        );
+      }),
     );
   }
 }
@@ -1473,7 +1778,10 @@ class _OutsideMeta extends StatelessWidget {
     return Column(
       children: [
         Text('Possession Start: $possessionStart',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         Text('Start Type: ${has ? startTypeLabel(s.startType) : '––'}',
             style: Theme.of(context).textTheme.titleMedium),
