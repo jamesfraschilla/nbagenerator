@@ -1293,7 +1293,7 @@ class _Scoreboard extends StatelessWidget {
         final gameClockStyle = _ClockBoxStyle(
           width: compact ? 150 : 180,
           height: compact ? 50 : 60,
-          borderRadius: compact ? 14 : 16,
+          borderRadius: 0,
           backgroundColor: insetColor,
           textColorOverride: Colors.white,
           horizontalPadding: compact ? 8 : 12,
@@ -1457,7 +1457,7 @@ class _TeamPanel extends StatelessWidget {
             builder: (context, constraints) {
               final baseFont = theme.textTheme.displayLarge?.fontSize ?? 60;
               final widthPadding = constraints.maxWidth * 0.035;
-              final heightPadding = constraints.maxHeight * 0.1;
+              final heightPadding = constraints.maxHeight * 0.08;
               final usableWidth = constraints.maxWidth - (widthPadding * 2);
               final fontSize = math.min(
                 constraints.maxHeight * 0.7,
@@ -1467,16 +1467,9 @@ class _TeamPanel extends StatelessWidget {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: panelColor,
-                  borderRadius:
-                      BorderRadius.circular(constraints.maxWidth * 0.22),
+                  borderRadius: BorderRadius.zero,
                   border: Border.all(color: borderColor, width: 2.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+                  boxShadow: const [],
                 ),
                 padding: EdgeInsets.symmetric(
                   horizontal: widthPadding,
@@ -1568,10 +1561,11 @@ class _CenterPanel extends StatelessWidget {
       letterSpacing: 1.0,
       color: Colors.white,
     );
+    final shotClockSide = compact ? 72.0 : 96.0;
     final shotClockStyle = _ClockBoxStyle(
-      width: compact ? 100 : 130,
-      height: compact ? 52 : 64,
-      borderRadius: compact ? 12 : 16,
+      width: shotClockSide,
+      height: shotClockSide,
+      borderRadius: 0,
       backgroundColor: backgroundColor,
       textColorOverride: null,
       horizontalPadding: compact ? 8 : 12,
@@ -1589,7 +1583,7 @@ class _CenterPanel extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.zero,
             border: Border.all(color: borderColor, width: 2),
           ),
           child: FittedBox(
@@ -1606,7 +1600,7 @@ class _CenterPanel extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(height: compact ? 10 : 16),
+        SizedBox(height: compact ? 22 : 28),
         Text('SHOT CLOCK', style: shotClockLabelStyle),
         SizedBox(height: compact ? 3 : 8),
         _BoxedClockTight(
@@ -1669,7 +1663,7 @@ class _StatPill extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: boxColor,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.zero,
             border: Border.all(color: outlineColor, width: 2),
           ),
           child: FittedBox(
@@ -1762,7 +1756,7 @@ class _TimeoutPill extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: background,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.zero,
             border: Border.all(color: borderColor, width: 2),
           ),
           constraints: BoxConstraints(maxWidth: compact ? 58 : 78),
