@@ -158,14 +158,6 @@ String formatGameClockTenths(int totalTenths) {
   return '$totalSeconds.$tenths';
 }
 
-class ClockRange {
-  final int minTenths;
-  final int maxTenths;
-  final String label;
-
-  const ClockRange(this.minTenths, this.maxTenths, this.label);
-}
-
 class IntRange {
   final int min;
   final int max;
@@ -176,6 +168,52 @@ class IntRange {
   @override
   String toString() => label;
 }
+
+class ScoreDiffSelection {
+  final int? min;
+  final int? max;
+  final bool tie;
+
+  const ScoreDiffSelection({this.min, this.max, this.tie = false});
+
+  const ScoreDiffSelection.any() : this();
+
+  ScoreDiffSelection copyWith(
+      {int? min,
+      bool includeMin = false,
+      int? max,
+      bool includeMax = false,
+      bool? tie}) {
+    return ScoreDiffSelection(
+      min: includeMin ? min : this.min,
+      max: includeMax ? max : this.max,
+      tie: tie ?? this.tie,
+    );
+  }
+}
+
+class ClockSelection {
+  final int? minTenths;
+  final int? maxTenths;
+
+  const ClockSelection({this.minTenths, this.maxTenths});
+
+  const ClockSelection.any() : this();
+
+  ClockSelection copyWith({
+    int? minTenths,
+    bool includeMin = false,
+    int? maxTenths,
+    bool includeMax = false,
+  }) {
+    return ClockSelection(
+      minTenths: includeMin ? minTenths : this.minTenths,
+      maxTenths: includeMax ? maxTenths : this.maxTenths,
+    );
+  }
+}
+
+enum PossessionPreference { winning, losing }
 
 const List<IntRange> scoreDiffPresets = <IntRange>[
   IntRange(0, 12, 'Any'),
@@ -188,26 +226,15 @@ const List<IntRange> scoreDiffPresets = <IntRange>[
   IntRange(7, 12, '7–12'),
 ];
 
-const List<ClockRange> clockPresets = <ClockRange>[
-  ClockRange(1, 1800, 'Any'),
-  ClockRange(1, 4, ':00.1-:00.4'),
-  ClockRange(10, 40, ':01-:04'),
-  ClockRange(40, 90, ':04-:09'),
-  ClockRange(1, 90, ':00.1-:09'),
-  ClockRange(90, 150, ':09-:15'),
-  ClockRange(150, 230, ':15-:23'),
-  ClockRange(90, 230, ':09-:23'),
-  ClockRange(250, 600, ':25-1:00'),
-  ClockRange(600, 1200, '1:00-2:00'),
-  ClockRange(1200, 1790, '2:00-2:59'),
-];
-
 class ScenarioSettings {
   Competition competition = Competition.nba;
-  IntRange scoreDiff = scoreDiffPresets.first;
-  ClockRange clock = clockPresets.first;
+  ScoreDiffSelection scoreDiff = const ScoreDiffSelection();
+  ClockSelection clock = const ClockSelection();
   bool favorFourthOrOT = true;
-  StartType? startType;
+  Set<StartType>? startTypes;
+  IntRange? foulRange;
+  IntRange? timeoutRange;
+  PossessionPreference? possessionPreference;
 }
 
 class Scenario {
@@ -279,10 +306,15 @@ class ScenarioController {
   final ScenarioSettings settings = ScenarioSettings();
   Scenario? _scenario;
   bool forceHideShotClockHighSchool = false;
+  String _homeTeamName = 'HOME';
+  String _guestTeamName = 'GUEST';
 
   bool get hasScenario => _scenario != null;
   Scenario get scenario => _scenario ?? _placeholder();
-  CompetitionRules get currentRules => rulesForCompetition(settings.competition);
+  CompetitionRules get currentRules =>
+      rulesForCompetition(settings.competition);
+  String get homeTeamName => _homeTeamName;
+  String get guestTeamName => _guestTeamName;
 
   Scenario _placeholder() => const Scenario(
         homeScore: 0,
@@ -304,12 +336,22 @@ class ScenarioController {
     _scenario = s;
   }
 
-  void setScoreDiffRange(IntRange range) {
-    settings.scoreDiff = range;
+  void setHomeTeamName(String name) {
+    final trimmed = name.trim();
+    _homeTeamName = trimmed.isEmpty ? 'HOME' : trimmed;
   }
 
-  void setClockRange(ClockRange range) {
-    settings.clock = range;
+  void setGuestTeamName(String name) {
+    final trimmed = name.trim();
+    _guestTeamName = trimmed.isEmpty ? 'GUEST' : trimmed;
+  }
+
+  void setScoreDiffSelection(ScoreDiffSelection selection) {
+    settings.scoreDiff = selection;
+  }
+
+  void setClockSelection(ClockSelection selection) {
+    settings.clock = selection;
   }
 
   void setCompetition(Competition competition) {
@@ -323,15 +365,120 @@ class ScenarioController {
     forceHideShotClockHighSchool = value;
   }
 
-  void setStartType(StartType? startType) {
-    settings.startType = startType;
+  void setStartTypes(Set<StartType>? startTypes) {
+    if (startTypes == null || startTypes.isEmpty) {
+      settings.startTypes = null;
+    } else {
+      settings.startTypes = startTypes.toSet();
+    }
+  }
+
+  void updateHomeScore(int value) {
+    _updateScenario(
+      (s) => s.copyWith(homeScore: _clamp(value, 0, 150)),
+    );
+  }
+
+  void updateGuestScore(int value) {
+    _updateScenario(
+      (s) => s.copyWith(guestScore: _clamp(value, 0, 150)),
+    );
+  }
+
+  void updateHomeFouls(int value) {
+    final rules = currentRules;
+    _updateScenario(
+      (s) => s.copyWith(homeFouls: _clamp(value, rules.foulMin, rules.foulMax)),
+    );
+  }
+
+  void updateGuestFouls(int value) {
+    final rules = currentRules;
+    _updateScenario(
+      (s) => s.copyWith(guestFouls: _clamp(value, rules.foulMin, rules.foulMax)),
+    );
+  }
+
+  void updateHomeTimeouts(int value) {
+    final rules = currentRules;
+    _updateScenario(
+      (s) => s.copyWith(homeTimeouts: _clamp(value, rules.timeoutMin, rules.timeoutMax)),
+    );
+  }
+
+  void updateGuestTimeouts(int value) {
+    final rules = currentRules;
+    _updateScenario(
+      (s) => s.copyWith(guestTimeouts: _clamp(value, rules.timeoutMin, rules.timeoutMax)),
+    );
+  }
+
+  void updateGameClockTenths(int tenths) {
+    final clamped = _clamp(tenths, 0, 1800);
+    _updateScenario(
+      (s) {
+        final maxShot = clamped ~/ 10;
+        final adjustedShot = maxShot > 0 ? min(s.shotClockSeconds, maxShot) : 0;
+        return s.copyWith(
+          gameClockTenths: clamped,
+          shotClockSeconds: adjustedShot,
+        );
+      },
+    );
+  }
+
+  void updateShotClock({required int seconds, required bool hide}) {
+    final rules = currentRules;
+    _updateScenario(
+      (s) {
+        final clampedSeconds = _clamp(seconds, 0, rules.shotClockMax);
+        final maxByClock = s.gameClockTenths ~/ 10;
+        final adjusted = maxByClock > 0 ? min(clampedSeconds, maxByClock) : 0;
+        return s.copyWith(
+          shotClockSeconds: adjusted,
+          hideShotClock: hide,
+        );
+      },
+    );
+  }
+
+  void setFoulRange(IntRange? range) {
+    settings.foulRange = range;
+  }
+
+  void setTimeoutRange(IntRange? range) {
+    settings.timeoutRange = range;
+  }
+
+  void setPossessionPreference(PossessionPreference? preference) {
+    settings.possessionPreference = preference;
+  }
+
+  void resetFilters() {
+    settings
+      ..scoreDiff = const ScoreDiffSelection()
+      ..clock = const ClockSelection()
+      ..startTypes = null
+      ..foulRange = null
+      ..timeoutRange = null
+      ..possessionPreference = null;
+    forceHideShotClockHighSchool = false;
+  }
+
+  void clearScenario() {
+    _scenario = null;
   }
 
   Scenario generateScenario() {
     final rules = currentRules;
     final competition = settings.competition;
-    final clockRange = settings.clock;
-    int gameClockTenths = _randIn(clockRange.minTenths, clockRange.maxTenths);
+    final clockSelection = settings.clock;
+    final int rawClockMin = (clockSelection.minTenths ?? 1).clamp(1, 1800);
+    final int rawClockMax = (clockSelection.maxTenths ?? 1800).clamp(1, 1800);
+    final int clockMin = min(rawClockMin, rawClockMax);
+    final int clockMax = max(rawClockMin, rawClockMax);
+
+    int gameClockTenths = _randIn(clockMin, clockMax);
     gameClockTenths = gameClockTenths.clamp(1, 1800).toInt();
 
     bool hideShotClock = false;
@@ -362,10 +509,11 @@ class ScenarioController {
       }
     }
 
+    final selectedStarts = settings.startTypes;
     late final StartType startType;
-    final desiredStart = settings.startType;
-    if (desiredStart != null) {
-      startType = desiredStart;
+    if (selectedStarts != null && selectedStarts.isNotEmpty) {
+      final list = selectedStarts.toList();
+      startType = list[_rng.nextInt(list.length)];
     } else {
       final startRoll = _rng.nextInt(100);
       if (startRoll < 60) {
@@ -384,12 +532,18 @@ class ScenarioController {
     }
 
     final maxShotClock = min(rules.shotClockMax, gameClockTenths ~/ 10);
-    final bool inboundStart = startType == StartType.sob || startType == StartType.bob;
+    final bool inboundStart =
+        startType == StartType.sob || startType == StartType.bob;
     final int inboundCap =
-        (competition == Competition.nba || competition == Competition.fiba) ? 20 : 25;
-    final int effectiveCap = inboundStart ? min(maxShotClock, inboundCap) : maxShotClock;
+        (competition == Competition.nba || competition == Competition.fiba)
+            ? 20
+            : 25;
+    final int effectiveCap =
+        inboundStart ? min(maxShotClock, inboundCap) : maxShotClock;
     final int baselineThresholdSeconds =
-        (competition == Competition.nba || competition == Competition.fiba) ? 24 : 30;
+        (competition == Competition.nba || competition == Competition.fiba)
+            ? 24
+            : 30;
     final int baselineThresholdTenths = baselineThresholdSeconds * 10;
 
     final bool jumpBallLowClock = startType == StartType.jumpBall &&
@@ -401,7 +555,9 @@ class ScenarioController {
             ? gameClockTenths >= 241
             : gameClockTenths >= 301);
     final int jumpBallTarget =
-        (competition == Competition.nba || competition == Competition.fiba) ? 24 : 30;
+        (competition == Competition.nba || competition == Competition.fiba)
+            ? 24
+            : 30;
 
     if (jumpBallOverride && effectiveCap > 0) {
       hideShotClock = false;
@@ -409,7 +565,8 @@ class ScenarioController {
     } else if (jumpBallLowClock) {
       hideShotClock = true;
       shotClockSeconds = 0;
-    } else if (competition == Competition.highSchool && forceHideShotClockHighSchool) {
+    } else if (competition == Competition.highSchool &&
+        forceHideShotClockHighSchool) {
       hideShotClock = true;
       shotClockSeconds = 0;
     } else if (startType == StartType.backCourtBaseline &&
@@ -417,7 +574,8 @@ class ScenarioController {
       hideShotClock = true;
       shotClockSeconds = 0;
     } else if (startType == StartType.ftLine) {
-      final bool isPro = competition == Competition.nba || competition == Competition.fiba;
+      final bool isPro =
+          competition == Competition.nba || competition == Competition.fiba;
       final int thresholdTenths = isPro ? 240 : 300;
       final int target = isPro ? 24 : 30;
 
@@ -426,7 +584,8 @@ class ScenarioController {
         shotClockSeconds = 0;
       } else {
         hideShotClock = false;
-        shotClockSeconds = min(target, effectiveCap > 0 ? effectiveCap : target);
+        shotClockSeconds =
+            min(target, effectiveCap > 0 ? effectiveCap : target);
       }
     } else if (hideShotClock || effectiveCap <= 0) {
       hideShotClock = true;
@@ -437,17 +596,23 @@ class ScenarioController {
       }
     }
 
-    final diffRange = settings.scoreDiff;
-    final diff = diffRange.min == 0 && diffRange.max == 0
-        ? 0
-        : _randIn(diffRange.min, diffRange.max);
+    final diffSelection = settings.scoreDiff;
+    final int diff;
+    if (diffSelection.tie) {
+      diff = 0;
+    } else {
+      final int minDiff = max(0, diffSelection.min ?? 0);
+      final int maxDiff = max(minDiff, diffSelection.max ?? 12);
+      diff = _randIn(minDiff, maxDiff);
+    }
 
     final maxAllowableDiff = rules.scoreMax - rules.scoreMin;
     final appliedDiff = min(diff, maxAllowableDiff);
     final lowerBoundMax = rules.scoreMax - appliedDiff;
     final safeLowerMax = max(lowerBoundMax, rules.scoreMin);
     final lowerScore = _randIn(rules.scoreMin, safeLowerMax);
-    final higherScore = (lowerScore + appliedDiff).clamp(rules.scoreMin, rules.scoreMax);
+    final higherScore =
+        (lowerScore + appliedDiff).clamp(rules.scoreMin, rules.scoreMax);
 
     int homeScore;
     int guestScore;
@@ -465,7 +630,8 @@ class ScenarioController {
     final preferLate = settings.favorFourthOrOT;
     Period period;
     if (preferLate) {
-      final includeOt = allowedPeriods.contains(Period.ot) && _rng.nextInt(100) < 20;
+      final includeOt =
+          allowedPeriods.contains(Period.ot) && _rng.nextInt(100) < 20;
       if (includeOt) {
         period = Period.ot;
       } else if (allowedPeriods.contains(rules.preferredRegulationPeriod)) {
@@ -483,12 +649,32 @@ class ScenarioController {
       }
     }
 
-    final possession = _rng.nextBool() ? TeamSide.home : TeamSide.guest;
+    TeamSide possession;
+    final possessionPreference = settings.possessionPreference;
+    if (possessionPreference != null && homeScore != guestScore) {
+      final TeamSide leading =
+          homeScore > guestScore ? TeamSide.home : TeamSide.guest;
+      final TeamSide trailing =
+          leading == TeamSide.home ? TeamSide.guest : TeamSide.home;
+      possession = possessionPreference == PossessionPreference.winning
+          ? leading
+          : trailing;
+    } else {
+      possession = _rng.nextBool() ? TeamSide.home : TeamSide.guest;
+    }
     final possessionArrow = rules.showPossessionArrow
         ? (_rng.nextBool() ? TeamSide.home : TeamSide.guest)
         : possession;
 
     int randomFouls() {
+      final customRange = settings.foulRange;
+      if (customRange != null) {
+        final minValue =
+            max(rules.foulMin, min(customRange.min, customRange.max));
+        final maxValue =
+            min(rules.foulMax, max(customRange.min, customRange.max));
+        return _randIn(minValue, maxValue);
+      }
       if (competition == Competition.fiba) {
         final roll = _rng.nextInt(100);
         if (roll < 3) return 1;
@@ -498,7 +684,19 @@ class ScenarioController {
       }
       return rules.foulMin + _rng.nextInt(rules.foulMax - rules.foulMin + 1);
     }
-    int randomTimeouts() => rules.timeoutMin + _rng.nextInt(rules.timeoutMax - rules.timeoutMin + 1);
+
+    int randomTimeouts() {
+      final customRange = settings.timeoutRange;
+      if (customRange != null) {
+        final minValue =
+            max(rules.timeoutMin, min(customRange.min, customRange.max));
+        final maxValue =
+            min(rules.timeoutMax, max(customRange.min, customRange.max));
+        return _randIn(minValue, maxValue);
+      }
+      return rules.timeoutMin +
+          _rng.nextInt(rules.timeoutMax - rules.timeoutMin + 1);
+    }
 
     final homeFouls = randomFouls();
     final guestFouls = randomFouls();
@@ -533,5 +731,16 @@ class ScenarioController {
       max = temp;
     }
     return min + _rng.nextInt(max - min + 1);
+  }
+
+  void _updateScenario(Scenario Function(Scenario) transform) {
+    final current = _scenario ?? _placeholder();
+    _scenario = transform(current);
+  }
+
+  int _clamp(int value, int min, int max) {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
   }
 }

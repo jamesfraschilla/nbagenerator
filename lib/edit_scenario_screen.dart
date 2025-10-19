@@ -87,7 +87,7 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
                 children: [
                   Expanded(
                     child: _clockFieldTenths(
-                      label: 'Game Clock (<60s s.t, else m:ss)',
+                      label: 'Game Clock',
                       initialTenths: gameClockTenths,
                       onSaved: (value) => gameClockTenths = value.clamp(0, 1800).toInt(),
                     ),
@@ -224,15 +224,15 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     _formKey.currentState!.save();
 
-    if (homeScore < rules.scoreMin ||
-        homeScore > rules.scoreMax ||
-        guestScore < rules.scoreMin ||
-        guestScore > rules.scoreMax) {
-      _show('Scores must be between ${rules.scoreMin} and ${rules.scoreMax}.');
+    if (homeScore < 0 ||
+        homeScore > 150 ||
+        guestScore < 0 ||
+        guestScore > 150) {
+      _show('Scores must be between 0 and 150.');
       return;
     }
-    if ((homeScore - guestScore).abs() > 12) {
-      _show('Score differential must be 12 or fewer.');
+    if ((homeScore - guestScore).abs() > 150) {
+      _show('Score differential must be 150 or fewer.');
       return;
     }
     if (!hideShotClock && shotClockSeconds > (gameClockTenths ~/ 10)) {
