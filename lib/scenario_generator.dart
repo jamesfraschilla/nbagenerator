@@ -242,6 +242,7 @@ class Scenario {
   final int guestScore;
   final int gameClockTenths;
   final int shotClockSeconds;
+  final bool shotClockBlank;
   final bool hideShotClock;
   final Period period;
   final TeamSide possession;
@@ -257,6 +258,7 @@ class Scenario {
     required this.guestScore,
     required this.gameClockTenths,
     required this.shotClockSeconds,
+    required this.shotClockBlank,
     required this.hideShotClock,
     required this.period,
     required this.possession,
@@ -273,6 +275,7 @@ class Scenario {
     int? guestScore,
     int? gameClockTenths,
     int? shotClockSeconds,
+    bool? shotClockBlank,
     bool? hideShotClock,
     Period? period,
     TeamSide? possession,
@@ -288,6 +291,7 @@ class Scenario {
       guestScore: guestScore ?? this.guestScore,
       gameClockTenths: gameClockTenths ?? this.gameClockTenths,
       shotClockSeconds: shotClockSeconds ?? this.shotClockSeconds,
+      shotClockBlank: shotClockBlank ?? this.shotClockBlank,
       hideShotClock: hideShotClock ?? this.hideShotClock,
       period: period ?? this.period,
       possession: possession ?? this.possession,
@@ -297,6 +301,110 @@ class Scenario {
       guestFouls: guestFouls ?? this.guestFouls,
       homeTimeouts: homeTimeouts ?? this.homeTimeouts,
       guestTimeouts: guestTimeouts ?? this.guestTimeouts,
+    );
+  }
+
+  static Scenario defaults() => const Scenario(
+        homeScore: 0,
+        guestScore: 0,
+        gameClockTenths: 0,
+        shotClockSeconds: 0,
+        shotClockBlank: true,
+        hideShotClock: true,
+        period: Period.p4,
+        possession: TeamSide.home,
+        possessionArrow: TeamSide.home,
+        startType: StartType.sob,
+        homeFouls: 0,
+        guestFouls: 0,
+        homeTimeouts: 0,
+        guestTimeouts: 0,
+      );
+
+  Map<String, dynamic> toJson() {
+    return {
+      'homeScore': homeScore,
+      'guestScore': guestScore,
+      'gameClockTenths': gameClockTenths,
+      'shotClockSeconds': shotClockSeconds,
+      'shotClockBlank': shotClockBlank,
+      'hideShotClock': hideShotClock,
+      'period': period.name,
+      'possession': possession.name,
+      'possessionArrow': possessionArrow.name,
+      'startType': startType.name,
+      'homeFouls': homeFouls,
+      'guestFouls': guestFouls,
+      'homeTimeouts': homeTimeouts,
+      'guestTimeouts': guestTimeouts,
+    };
+  }
+
+  factory Scenario.fromJson(Map<String, dynamic> json) {
+    int readInt(String key, int fallback) {
+      final value = json[key];
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      return fallback;
+    }
+
+    bool readBool(String key, bool fallback) {
+      final value = json[key];
+      if (value is bool) return value;
+      if (value is num) return value != 0;
+      if (value is String) {
+        final lowered = value.toLowerCase();
+        if (lowered == 'true' || lowered == '1') return true;
+        if (lowered == 'false' || lowered == '0') return false;
+      }
+      return fallback;
+    }
+
+    TeamSide readTeamSide(String key, TeamSide fallback) {
+      final value = json[key];
+      if (value is String) {
+        try {
+          return TeamSide.values.byName(value);
+        } catch (_) {}
+      }
+      return fallback;
+    }
+
+    Period readPeriod(String key, Period fallback) {
+      final value = json[key];
+      if (value is String) {
+        try {
+          return Period.values.byName(value);
+        } catch (_) {}
+      }
+      return fallback;
+    }
+
+    StartType readStartType(String key, StartType fallback) {
+      final value = json[key];
+      if (value is String) {
+        try {
+          return StartType.values.byName(value);
+        } catch (_) {}
+      }
+      return fallback;
+    }
+
+    return Scenario(
+      homeScore: readInt('homeScore', 0),
+      guestScore: readInt('guestScore', 0),
+      gameClockTenths: readInt('gameClockTenths', 0),
+      shotClockSeconds: readInt('shotClockSeconds', 0),
+      shotClockBlank: readBool('shotClockBlank', false),
+      hideShotClock: readBool('hideShotClock', false),
+      period: readPeriod('period', Period.p4),
+      possession: readTeamSide('possession', TeamSide.home),
+      possessionArrow: readTeamSide('possessionArrow', TeamSide.home),
+      startType: readStartType('startType', StartType.sob),
+      homeFouls: readInt('homeFouls', 0),
+      guestFouls: readInt('guestFouls', 0),
+      homeTimeouts: readInt('homeTimeouts', 0),
+      guestTimeouts: readInt('guestTimeouts', 0),
     );
   }
 }
@@ -316,21 +424,7 @@ class ScenarioController {
   String get homeTeamName => _homeTeamName;
   String get guestTeamName => _guestTeamName;
 
-  Scenario _placeholder() => const Scenario(
-        homeScore: 0,
-        guestScore: 0,
-        gameClockTenths: 0,
-        shotClockSeconds: 0,
-        hideShotClock: true,
-        period: Period.p4,
-        possession: TeamSide.home,
-        possessionArrow: TeamSide.home,
-        startType: StartType.sob,
-        homeFouls: 0,
-        guestFouls: 0,
-        homeTimeouts: 0,
-        guestTimeouts: 0,
-      );
+  Scenario _placeholder() => Scenario.defaults();
 
   void setScenario(Scenario s) {
     _scenario = s;
@@ -395,21 +489,24 @@ class ScenarioController {
   void updateGuestFouls(int value) {
     final rules = currentRules;
     _updateScenario(
-      (s) => s.copyWith(guestFouls: _clamp(value, rules.foulMin, rules.foulMax)),
+      (s) =>
+          s.copyWith(guestFouls: _clamp(value, rules.foulMin, rules.foulMax)),
     );
   }
 
   void updateHomeTimeouts(int value) {
     final rules = currentRules;
     _updateScenario(
-      (s) => s.copyWith(homeTimeouts: _clamp(value, rules.timeoutMin, rules.timeoutMax)),
+      (s) => s.copyWith(
+          homeTimeouts: _clamp(value, rules.timeoutMin, rules.timeoutMax)),
     );
   }
 
   void updateGuestTimeouts(int value) {
     final rules = currentRules;
     _updateScenario(
-      (s) => s.copyWith(guestTimeouts: _clamp(value, rules.timeoutMin, rules.timeoutMax)),
+      (s) => s.copyWith(
+          guestTimeouts: _clamp(value, rules.timeoutMin, rules.timeoutMax)),
     );
   }
 
@@ -436,6 +533,7 @@ class ScenarioController {
         final adjusted = maxByClock > 0 ? min(clampedSeconds, maxByClock) : 0;
         return s.copyWith(
           shotClockSeconds: adjusted,
+          shotClockBlank: adjusted <= 0,
           hideShotClock: hide,
         );
       },
@@ -482,6 +580,7 @@ class ScenarioController {
     gameClockTenths = gameClockTenths.clamp(1, 1800).toInt();
 
     bool hideShotClock = false;
+    bool shotClockBlank = false;
     int shotClockSeconds = 0;
 
     if (gameClockTenths < 100) {
@@ -562,17 +661,21 @@ class ScenarioController {
     if (jumpBallOverride && effectiveCap > 0) {
       hideShotClock = false;
       shotClockSeconds = min(jumpBallTarget, effectiveCap);
+      shotClockBlank = false;
     } else if (jumpBallLowClock) {
       hideShotClock = true;
       shotClockSeconds = 0;
+      shotClockBlank = true;
     } else if (competition == Competition.highSchool &&
         forceHideShotClockHighSchool) {
       hideShotClock = true;
       shotClockSeconds = 0;
+      shotClockBlank = true;
     } else if (startType == StartType.backCourtBaseline &&
         gameClockTenths < baselineThresholdTenths) {
       hideShotClock = true;
       shotClockSeconds = 0;
+      shotClockBlank = true;
     } else if (startType == StartType.ftLine) {
       final bool isPro =
           competition == Competition.nba || competition == Competition.fiba;
@@ -582,18 +685,150 @@ class ScenarioController {
       if (gameClockTenths <= thresholdTenths) {
         hideShotClock = true;
         shotClockSeconds = 0;
+        shotClockBlank = true;
       } else {
         hideShotClock = false;
         shotClockSeconds =
             min(target, effectiveCap > 0 ? effectiveCap : target);
+        shotClockBlank = false;
       }
     } else if (hideShotClock || effectiveCap <= 0) {
       hideShotClock = true;
       shotClockSeconds = 0;
+      shotClockBlank = true;
     } else {
       if (shotClockSeconds <= 0 || shotClockSeconds > effectiveCap) {
-        shotClockSeconds = _rng.nextInt(effectiveCap) + 1;
+        shotClockSeconds = _randIn(1, max(1, effectiveCap));
       }
+    }
+
+    final bool isProCompetition =
+        competition == Competition.nba || competition == Competition.fiba;
+    final int extendedThresholdTenths = isProCompetition ? 240 : 300;
+    if (gameClockTenths > extendedThresholdTenths) {
+      final int upperBound = max(
+        1,
+        min(maxShotClock > 0 ? maxShotClock : rules.shotClockMax,
+            rules.shotClockMax),
+      );
+
+      int pickRangeInclusive(int minSeconds, int maxSeconds) {
+        final int clampedMax = min(maxSeconds, upperBound);
+        final int clampedMin = min(max(minSeconds, 1), clampedMax);
+        if (clampedMax < clampedMin) {
+          return clampedMax;
+        }
+        return _randIn(clampedMin, clampedMax);
+      }
+
+      int sobProShot() {
+        final roll = _rng.nextInt(100);
+        if (roll < 75) {
+          return min(14, upperBound);
+        } else if (roll < 85) {
+          return pickRangeInclusive(15, 20);
+        } else if (roll < 90) {
+          return pickRangeInclusive(8, 13);
+        } else if (roll < 95) {
+          return pickRangeInclusive(4, 7);
+        }
+        return pickRangeInclusive(2, 3);
+      }
+
+      int bobProShot() {
+        final roll = _rng.nextInt(100);
+        if (roll < 75) {
+          return pickRangeInclusive(10, 18);
+        } else if (roll < 95) {
+          return pickRangeInclusive(5, 9);
+        }
+        return pickRangeInclusive(2, 4);
+      }
+
+      int sobNcaaShot() {
+        final roll = _rng.nextInt(100);
+        if (roll < 75) {
+          return min(20, upperBound);
+        } else if (roll < 85) {
+          return pickRangeInclusive(21, 25);
+        } else if (roll < 90) {
+          return pickRangeInclusive(8, 18);
+        } else if (roll < 95) {
+          return pickRangeInclusive(4, 7);
+        }
+        return pickRangeInclusive(2, 3);
+      }
+
+      int bobNcaaShot() {
+        final roll = _rng.nextInt(100);
+        if (roll < 75) {
+          return pickRangeInclusive(10, 22);
+        } else if (roll < 95) {
+          return pickRangeInclusive(5, 9);
+        }
+        return pickRangeInclusive(2, 4);
+      }
+
+      int desiredSeconds = shotClockSeconds;
+
+      if (isProCompetition) {
+        switch (startType) {
+          case StartType.ftLine:
+            desiredSeconds = min(24, upperBound);
+            break;
+          case StartType.backCourtBaseline:
+            desiredSeconds = min(24, upperBound);
+            break;
+          case StartType.backCourtSideline:
+            desiredSeconds = pickRangeInclusive(18, 24);
+            break;
+          case StartType.jumpBall:
+            desiredSeconds = min(24, upperBound);
+            break;
+          case StartType.sob:
+            desiredSeconds = sobProShot();
+            break;
+          case StartType.bob:
+            desiredSeconds = bobProShot();
+            break;
+        }
+      } else {
+        switch (startType) {
+          case StartType.ftLine:
+            desiredSeconds = min(30, upperBound);
+            break;
+          case StartType.backCourtBaseline:
+            desiredSeconds = min(30, upperBound);
+            break;
+          case StartType.backCourtSideline:
+            desiredSeconds = pickRangeInclusive(22, 30);
+            break;
+          case StartType.jumpBall:
+            desiredSeconds = min(30, upperBound);
+            break;
+          case StartType.sob:
+            desiredSeconds = sobNcaaShot();
+            break;
+          case StartType.bob:
+            desiredSeconds = bobNcaaShot();
+            break;
+        }
+      }
+
+      if (desiredSeconds <= 0) {
+        desiredSeconds = upperBound;
+      }
+      shotClockSeconds = desiredSeconds.clamp(1, upperBound);
+      hideShotClock = false;
+      shotClockBlank = false;
+    }
+
+    shotClockBlank = shotClockBlank || hideShotClock || shotClockSeconds <= 0;
+
+    final bool shortClockBlank =
+        isProCompetition ? gameClockTenths < 240 : gameClockTenths < 300;
+    if (shortClockBlank) {
+      shotClockBlank = true;
     }
 
     final diffSelection = settings.scoreDiff;
@@ -708,6 +943,7 @@ class ScenarioController {
       guestScore: guestScore,
       gameClockTenths: gameClockTenths,
       shotClockSeconds: shotClockSeconds,
+      shotClockBlank: shotClockBlank,
       hideShotClock: hideShotClock,
       period: period,
       possession: possession,

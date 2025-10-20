@@ -5,7 +5,8 @@ import 'scenario_generator.dart';
 class EditScenarioScreen extends StatefulWidget {
   final Scenario initial;
   final Competition competition;
-  const EditScenarioScreen({super.key, required this.initial, required this.competition});
+  const EditScenarioScreen(
+      {super.key, required this.initial, required this.competition});
 
   @override
   State<EditScenarioScreen> createState() => _EditScenarioScreenState();
@@ -21,6 +22,7 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
   late int guestScore;
   late int gameClockTenths;
   late int shotClockSeconds;
+  late bool shotClockBlank;
   late bool hideShotClock;
   late Period period;
   late TeamSide possession;
@@ -41,16 +43,20 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
     guestScore = s.guestScore;
     gameClockTenths = s.gameClockTenths;
     shotClockSeconds = s.shotClockSeconds.clamp(0, rules.shotClockMax).toInt();
+    shotClockBlank = s.shotClockBlank;
     hideShotClock = s.hideShotClock;
     final allowedPeriods = rules.allowedPeriods;
-    period = allowedPeriods.contains(s.period) ? s.period : allowedPeriods.first;
+    period =
+        allowedPeriods.contains(s.period) ? s.period : allowedPeriods.first;
     possession = s.possession;
     possessionArrow = s.possessionArrow;
     startType = s.startType;
     homeFouls = s.homeFouls.clamp(rules.foulMin, rules.foulMax).toInt();
     guestFouls = s.guestFouls.clamp(rules.foulMin, rules.foulMax).toInt();
-    homeTimeouts = s.homeTimeouts.clamp(rules.timeoutMin, rules.timeoutMax).toInt();
-    guestTimeouts = s.guestTimeouts.clamp(rules.timeoutMin, rules.timeoutMax).toInt();
+    homeTimeouts =
+        s.homeTimeouts.clamp(rules.timeoutMin, rules.timeoutMax).toInt();
+    guestTimeouts =
+        s.guestTimeouts.clamp(rules.timeoutMin, rules.timeoutMax).toInt();
   }
 
   @override
@@ -89,7 +95,8 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
                     child: _clockFieldTenths(
                       label: 'Game Clock',
                       initialTenths: gameClockTenths,
-                      onSaved: (value) => gameClockTenths = value.clamp(0, 1800).toInt(),
+                      onSaved: (value) =>
+                          gameClockTenths = value.clamp(0, 1800).toInt(),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -97,11 +104,13 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
                     child: _dropdown<int>(
                       label: 'Shot Clock (0-${rules.shotClockMax})',
                       value: shotClockSeconds,
-                      items: List<int>.generate(rules.shotClockMax + 1, (i) => i),
+                      items:
+                          List<int>.generate(rules.shotClockMax + 1, (i) => i),
                       display: (v) => '$v',
                       onChanged: (value) => setState(() {
                         shotClockSeconds = value;
                         hideShotClock = false;
+                        shotClockBlank = value <= 0;
                       }),
                     ),
                   ),
@@ -112,7 +121,12 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
                 children: [
                   Checkbox(
                     value: hideShotClock,
-                    onChanged: (value) => setState(() => hideShotClock = value ?? false),
+                    onChanged: (value) => setState(() {
+                      hideShotClock = value ?? false;
+                      if (hideShotClock) {
+                        shotClockBlank = true;
+                      }
+                    }),
                   ),
                   const Text('Hide Shot Clock'),
                 ],
@@ -135,7 +149,8 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
                       label: 'Possession Start',
                       value: possession,
                       items: TeamSide.values,
-                      display: (side) => side == TeamSide.home ? 'Home' : 'Guest',
+                      display: (side) =>
+                          side == TeamSide.home ? 'Home' : 'Guest',
                       onChanged: (value) => setState(() => possession = value),
                     ),
                   ),
@@ -188,21 +203,25 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
                 children: [
                   Expanded(
                     child: _dropdown<int>(
-                      label: 'Home TOL (${rules.timeoutMin}-${rules.timeoutMax})',
+                      label:
+                          'Home TOL (${rules.timeoutMin}-${rules.timeoutMax})',
                       value: homeTimeouts,
                       items: _intRange(rules.timeoutMin, rules.timeoutMax),
                       display: (v) => '$v',
-                      onChanged: (value) => setState(() => homeTimeouts = value),
+                      onChanged: (value) =>
+                          setState(() => homeTimeouts = value),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _dropdown<int>(
-                      label: 'Guest TOL (${rules.timeoutMin}-${rules.timeoutMax})',
+                      label:
+                          'Guest TOL (${rules.timeoutMin}-${rules.timeoutMax})',
                       value: guestTimeouts,
                       items: _intRange(rules.timeoutMin, rules.timeoutMax),
                       display: (v) => '$v',
-                      onChanged: (value) => setState(() => guestTimeouts = value),
+                      onChanged: (value) =>
+                          setState(() => guestTimeouts = value),
                     ),
                   ),
                 ],
@@ -254,7 +273,8 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
         homeTimeouts > rules.timeoutMax ||
         guestTimeouts < rules.timeoutMin ||
         guestTimeouts > rules.timeoutMax) {
-      _show('Timeouts must be between ${rules.timeoutMin} and ${rules.timeoutMax}.');
+      _show(
+          'Timeouts must be between ${rules.timeoutMin} and ${rules.timeoutMax}.');
       return;
     }
 
@@ -263,6 +283,7 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
       guestScore: guestScore,
       gameClockTenths: gameClockTenths,
       shotClockSeconds: shotClockSeconds,
+      shotClockBlank: shotClockBlank,
       hideShotClock: hideShotClock,
       period: period,
       possession: possession,
@@ -278,7 +299,8 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
   }
 
   void _show(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _numField(String label,
@@ -286,7 +308,8 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
     final controller = TextEditingController(text: initial.toString());
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+      decoration:
+          InputDecoration(labelText: label, border: const OutlineInputBorder()),
       keyboardType: TextInputType.number,
       validator: (value) {
         if (value == null || value.isEmpty) return 'Enter a number';
@@ -384,7 +407,8 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
           value: value,
           isExpanded: true,
           items: items
-              .map((item) => DropdownMenuItem<T>(value: item, child: Text(display(item))))
+              .map((item) =>
+                  DropdownMenuItem<T>(value: item, child: Text(display(item))))
               .toList(),
           onChanged: (selected) {
             if (selected != null) onChanged(selected);

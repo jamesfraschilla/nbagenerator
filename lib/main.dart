@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui show Codec, Image, instantiateImageCodec;
@@ -9,6 +10,7 @@ import 'package:flutter/services.dart';
 
 import 'edit_scenario_screen.dart';
 import 'scenario_generator.dart';
+import 'storage.dart';
 
 void main() {
   runApp(const ScenarioApp());
@@ -148,20 +150,171 @@ class ScenarioLogEntry {
   final DateTime createdAt;
   final Scenario scenario;
   final String notes;
-  ScenarioLogEntry(
-      {required this.createdAt, required this.scenario, required this.notes});
+  final String homeTeamName;
+  final String guestTeamName;
+  final Competition competition;
+
+  ScenarioLogEntry({
+    required this.createdAt,
+    required this.scenario,
+    required this.notes,
+    required this.homeTeamName,
+    required this.guestTeamName,
+    required this.competition,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'createdAt': createdAt.toIso8601String(),
+      'scenario': scenario.toJson(),
+      'notes': notes,
+      'homeTeamName': homeTeamName,
+      'guestTeamName': guestTeamName,
+      'competition': competition.name,
+    };
+  }
+
+  factory ScenarioLogEntry.fromJson(Map<String, dynamic> json) {
+    Scenario parseScenario(Map<String, dynamic>? map) {
+      if (map == null) return Scenario.defaults();
+      try {
+        return Scenario.fromJson(map);
+      } catch (e) {
+        debugPrint('Failed to parse scenario from history: $e');
+        return Scenario.defaults();
+      }
+    }
+
+    Competition parseCompetition(String? value) {
+      if (value == null) return Competition.nba;
+      return Competition.values.firstWhere(
+        (c) => c.name == value,
+        orElse: () => Competition.nba,
+      );
+    }
+
+    return ScenarioLogEntry(
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+          DateTime.now(),
+      scenario: parseScenario(
+        (json['scenario'] as Map?)?.cast<String, dynamic>(),
+      ),
+      notes: json['notes'] as String? ?? '',
+      homeTeamName: json['homeTeamName'] as String? ?? 'HOME',
+      guestTeamName: json['guestTeamName'] as String? ?? 'GUEST',
+      competition: parseCompetition(json['competition'] as String?),
+    );
+  }
 }
 
 class HistoryStore {
   HistoryStore._();
   static final HistoryStore instance = HistoryStore._();
+
+  static const _historyFileName = 'history.json';
+  static const int _maxEntries = 250;
+
   final ValueNotifier<List<ScenarioLogEntry>> entries =
       ValueNotifier<List<ScenarioLogEntry>>([]);
-  void add(Scenario s, String notes) {
+
+  Future<void>? _loadFuture;
+
+  Future<void> ensureLoaded() {
+    _loadFuture ??= _readFromDisk();
+    return _loadFuture!;
+  }
+
+  Future<void> add({
+    required Scenario scenario,
+    required String notes,
+    required String homeTeamName,
+    required String guestTeamName,
+    required Competition competition,
+  }) async {
+    await ensureLoaded();
+    final entry = ScenarioLogEntry(
+      createdAt: DateTime.now(),
+      scenario: scenario,
+      notes: notes,
+      homeTeamName: homeTeamName,
+      guestTeamName: guestTeamName,
+      competition: competition,
+    );
     final list = List<ScenarioLogEntry>.from(entries.value);
-    list.insert(0,
-        ScenarioLogEntry(createdAt: DateTime.now(), scenario: s, notes: notes));
+    list.insert(0, entry);
+    if (list.length > _maxEntries) {
+      list.removeRange(_maxEntries, list.length);
+    }
     entries.value = list;
+    await _writeToDisk(list);
+  }
+
+  Future<void> removeEntry(ScenarioLogEntry entry) async {
+    await ensureLoaded();
+    final list = List<ScenarioLogEntry>.from(entries.value);
+    final index = list.indexOf(entry);
+    if (index == -1) return;
+    list.removeAt(index);
+    entries.value = list;
+    await _writeToDisk(list);
+  }
+
+  Future<void> clear() async {
+    entries.value = const <ScenarioLogEntry>[];
+    try {
+      final file = await _historyFile();
+      if (await file.exists()) {
+        await file.writeAsString('[]');
+      }
+    } catch (e) {
+      debugPrint('Failed to clear history: $e');
+    }
+  }
+
+  Future<File> _historyFile() async {
+    return AppStorage.instance.file(_historyFileName);
+  }
+
+  Future<void> _writeToDisk(List<ScenarioLogEntry> list) async {
+    try {
+      final file = await _historyFile();
+      final data = list.map((entry) => entry.toJson()).toList();
+      await file.writeAsString(jsonEncode(data));
+    } catch (e) {
+      debugPrint('Failed to save history: $e');
+    }
+  }
+
+  Future<void> _readFromDisk() async {
+    try {
+      final file = await _historyFile();
+      if (!await file.exists()) {
+        entries.value = const <ScenarioLogEntry>[];
+        return;
+      }
+      final raw = await file.readAsString();
+      if (raw.trim().isEmpty) {
+        entries.value = const <ScenarioLogEntry>[];
+        return;
+      }
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        entries.value = const <ScenarioLogEntry>[];
+        return;
+      }
+      final list = <ScenarioLogEntry>[];
+      for (final item in decoded) {
+        if (item is Map) {
+          list.add(
+            ScenarioLogEntry.fromJson(item.cast<String, dynamic>()),
+          );
+        }
+      }
+      entries.value = list;
+    } catch (e) {
+      debugPrint('Failed to load history: $e');
+      entries.value = const <ScenarioLogEntry>[];
+    }
   }
 }
 
@@ -178,7 +331,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ScenarioController controller = ScenarioController();
   static const _animationFadeDuration = Duration(milliseconds: 400);
-  static const _prefsDirName = 'clutch_scenarios';
   static const _competitionFileName = 'competition.txt';
 
   bool _isAnimating = false;
@@ -188,6 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Completer<void>? _animationCompleter;
   bool _hideShotClock = false;
   bool _forceHideShotClock = false;
+  bool _savingHistory = false;
 
   Future<void> _loadCompetition() async {
     try {
@@ -217,16 +370,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<File> _competitionFile() async {
-    final dir = await _prefsDir();
-    return File('${dir.path}/$_competitionFileName');
-  }
-
-  Future<Directory> _prefsDir() async {
-    final dir = Directory('${Directory.systemTemp.path}/$_prefsDirName');
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-    return dir;
+    return AppStorage.instance.file(_competitionFileName);
   }
 
   @override
@@ -268,38 +412,23 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Column(
               children: [
-                // Competition dropdown
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: IntrinsicWidth(
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Competition',
-                          border: OutlineInputBorder(),
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<Competition>(
-                            value: controller.settings.competition,
-                            isExpanded: false,
-                            items: Competition.values
-                                .map((c) => DropdownMenuItem<Competition>(
-                                      value: c,
-                                      child: Text(competitionLabel(c)),
-                                    ))
-                                .toList(),
-                            onChanged: (c) {
-                              if (c != null) {
-                                setState(() => controller.setCompetition(c));
-                                _saveCompetition(c);
-                              }
-                            },
-                          ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: Colors.orange, width: 2),
+                        foregroundColor: Colors.orange,
+                        textStyle: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
                         ),
                       ),
+                      onPressed: _isAnimating ? null : _handleGenerate,
+                      child: const Text('Generate'),
                     ),
                   ),
                 ),
@@ -308,10 +437,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   controller: controller,
                   onChanged: () => setState(() {}),
                   onReset: _handleRangeReset,
-                  hideShotClock: _hideShotClock,
                   onHideShotClockChanged: _toggleHideShotClock,
+                  onCompetitionChanged: (competition) {
+                    _saveCompetition(competition);
+                  },
                 ),
                 const SizedBox(height: 8),
+
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                  child: _OutsideMeta(controller: controller),
+                ),
+                const SizedBox(height: 4),
 
                 // Scoreboard
                 Expanded(
@@ -339,26 +476,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // Outside info
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                  child: _OutsideMeta(controller: controller),
-                ),
-
                 // Actions
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed:
-                              _isAnimating ? null : () => _handleGenerate(),
-                          icon: const Icon(Icons.play_arrow_rounded),
-                          label: Text(has ? 'Regenerate' : 'Generate'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: has && !_isAnimating
@@ -366,15 +488,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                   final updated = await Navigator.of(context)
                                       .push<Scenario>(
                                     MaterialPageRoute(
-                                        builder: (_) => EditScenarioScreen(
-                                              initial: s,
-                                              competition: controller
-                                                  .settings.competition,
-                                            )),
+                                      builder: (_) => EditScenarioScreen(
+                                        initial: s,
+                                        competition:
+                                            controller.settings.competition,
+                                      ),
+                                    ),
                                   );
                                   if (updated != null) {
                                     setState(() {
-                                  if (controller.settings.competition ==
+                                      if (controller.settings.competition ==
                                           Competition.highSchool) {
                                         controller
                                             .setForceHideShotClockHighSchool(
@@ -385,7 +508,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 false);
                                       }
                                       controller.setScenario(updated);
-                                      _forceHideShotClock = updated.hideShotClock;
+                                      _forceHideShotClock =
+                                          updated.hideShotClock;
                                       _hideShotClock = updated.hideShotClock;
                                     });
                                   }
@@ -395,10 +519,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           label: const Text('Edit Scenario'),
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: has && !_isAnimating && !_savingHistory
+                              ? _saveScenarioToHistory
+                              : null,
+                          icon: const Icon(Icons.history_edu_outlined),
+                          label:
+                              Text(_savingHistory ? 'Saving…' : 'Save Notes'),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-
               ],
             ),
             if (_showAnimation)
@@ -444,14 +578,87 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     if (controller.hasScenario) {
       controller.setScenario(
-        controller.scenario.copyWith(hideShotClock: value),
+        controller.scenario.copyWith(
+          hideShotClock: value,
+          shotClockBlank: value ? true : controller.scenario.shotClockBlank,
+        ),
       );
     }
   }
 
+  Future<void> _saveScenarioToHistory() async {
+    if (_savingHistory || !controller.hasScenario) return;
+    final notes = await _promptNotes();
+    if (notes == null) return;
+
+    setState(() => _savingHistory = true);
+    final scenario = controller.scenario;
+    final trimmedNotes = notes.trim();
+
+    try {
+      await HistoryStore.instance.add(
+        scenario: scenario,
+        notes: trimmedNotes,
+        homeTeamName: controller.homeTeamName,
+        guestTeamName: controller.guestTeamName,
+        competition: controller.settings.competition,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notes saved to history')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Failed to save history entry: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save notes')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _savingHistory = false);
+      } else {
+        _savingHistory = false;
+      }
+    }
+  }
+
+  Future<String?> _promptNotes() async {
+    final textController = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Save Notes'),
+          content: TextField(
+            controller: textController,
+            autofocus: true,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              hintText: 'Add notes (optional)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(textController.text),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _editTeamName(TeamSide side) async {
-    final current =
-        side == TeamSide.home ? controller.homeTeamName : controller.guestTeamName;
+    final current = side == TeamSide.home
+        ? controller.homeTeamName
+        : controller.guestTeamName;
     final result = await _promptText(
       title: side == TeamSide.home ? 'Edit Home Team' : 'Edit Guest Team',
       initial: current,
@@ -469,7 +676,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _editScore(TeamSide side) async {
     if (!controller.hasScenario) return;
     final scenario = controller.scenario;
-    final current = side == TeamSide.home ? scenario.homeScore : scenario.guestScore;
+    final current =
+        side == TeamSide.home ? scenario.homeScore : scenario.guestScore;
     final result = await _promptInt(
       title: side == TeamSide.home ? 'Edit Home Score' : 'Edit Guest Score',
       initialValue: current,
@@ -489,7 +697,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!controller.hasScenario) return;
     final rules = controller.currentRules;
     final scenario = controller.scenario;
-    final current = side == TeamSide.home ? scenario.homeFouls : scenario.guestFouls;
+    final current =
+        side == TeamSide.home ? scenario.homeFouls : scenario.guestFouls;
     final result = await _promptInt(
       title: side == TeamSide.home ? 'Edit Home Fouls' : 'Edit Guest Fouls',
       initialValue: current,
@@ -512,7 +721,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final current =
         side == TeamSide.home ? scenario.homeTimeouts : scenario.guestTimeouts;
     final result = await _promptInt(
-      title: side == TeamSide.home ? 'Edit Home Timeouts' : 'Edit Guest Timeouts',
+      title:
+          side == TeamSide.home ? 'Edit Home Timeouts' : 'Edit Guest Timeouts',
       initialValue: current,
       min: rules.timeoutMin,
       max: rules.timeoutMax,
@@ -580,7 +790,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () => Navigator.of(context).pop(textController.text.trim()),
+              onPressed: () =>
+                  Navigator.of(context).pop(textController.text.trim()),
               child: const Text('Save'),
             ),
           ],
@@ -743,7 +954,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final autoHide = generated.hideShotClock;
     final shouldHide = _forceHideShotClock ? true : autoHide;
-    final applied = generated.copyWith(hideShotClock: shouldHide);
+    final applied = generated.copyWith(
+      hideShotClock: shouldHide,
+      shotClockBlank: shouldHide ? true : generated.shotClockBlank,
+    );
 
     controller.setScenario(applied);
     setState(() {
@@ -768,12 +982,9 @@ class _HomeScreenState extends State<HomeScreen> {
       completer.complete();
     }
   }
-
 }
 
 /// -------- History Screen with filters --------
-enum TimeFilter { all, last24h, last7d, last30d }
-
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
@@ -783,22 +994,40 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final store = HistoryStore.instance;
-  static const List<IntRange> _scoreFilterOptions = <IntRange>[
-    IntRange(0, 12, 'Any'),
-    IntRange(0, 0, 'Tie only'),
-    IntRange(1, 3, '1-3'),
-    IntRange(4, 6, '4-6'),
-    IntRange(1, 6, '1-6'),
-    IntRange(7, 9, '7-9'),
-    IntRange(10, 12, '10-12'),
-    IntRange(7, 12, '7-12'),
+  static const List<int?> _scoreOptions = <int?>[
+    null,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
   ];
 
-  // Filters
-  TimeFilter _timeFilter = TimeFilter.all;
-  StartType? _startType; // null = all
-  IntRange _scoreRange = const IntRange(0, 12, 'Any');
+  late final List<int?> _clockMinOptions;
+  late final List<int?> _clockMaxOptions;
+
+  int? _scoreMin;
+  int? _scoreMax;
+  bool _scoreTie = false;
+  int? _clockMin;
+  int? _clockMax;
+  final Set<StartType> _selectedStarts = <StartType>{};
   String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(store.ensureLoaded());
+    _clockMinOptions = _buildClockMinOptions();
+    _clockMaxOptions = _buildClockMaxOptions();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -807,31 +1036,50 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Filters
             Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.all(12),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
                     children: [
-                      Expanded(child: _timeDropdown()),
+                      Expanded(
+                        child: _historyFilterField(
+                          context,
+                          label: 'Score',
+                          value: _scoreLabel(),
+                          onTap: _showScoreSelector,
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      Expanded(child: _startTypeDropdown()),
+                      Expanded(
+                        child: _historyFilterField(
+                          context,
+                          label: 'Clock',
+                          value: _clockLabel(),
+                          onTap: _showClockSelector,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _historyFilterField(
+                          context,
+                          label: 'Start Type',
+                          value: _startLabel(),
+                          onTap: _showStartSelector,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: _scoreRangeDropdown()),
-                      const SizedBox(width: 8),
-                      Expanded(child: _searchField()),
-                    ],
+                  SizedBox(
+                    width: double.infinity,
+                    child: _searchField(),
                   ),
                 ],
               ),
             ),
             const Divider(height: 1),
-            // Results
             Expanded(
               child: ValueListenableBuilder<List<ScenarioLogEntry>>(
                 valueListenable: store.entries,
@@ -844,8 +1092,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     padding: const EdgeInsets.all(12),
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) =>
-                        _HistoryCard(entry: filtered[i]),
+                    itemBuilder: (context, i) {
+                      final entry = filtered[i];
+                      return _HistoryCard(
+                        entry: entry,
+                        onDelete: () => store.removeEntry(entry),
+                      );
+                    },
                   );
                 },
               ),
@@ -857,98 +1110,460 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   List<ScenarioLogEntry> _applyFilters(List<ScenarioLogEntry> list) {
-    final now = DateTime.now();
-
-    bool inTime(DateTime ts) {
-      switch (_timeFilter) {
-        case TimeFilter.all:
-          return true;
-        case TimeFilter.last24h:
-          return ts.isAfter(now.subtract(const Duration(hours: 24)));
-        case TimeFilter.last7d:
-          return ts.isAfter(now.subtract(const Duration(days: 7)));
-        case TimeFilter.last30d:
-          return ts.isAfter(now.subtract(const Duration(days: 30)));
-      }
+    bool inScore(Scenario s) {
+      final diff = (s.homeScore - s.guestScore).abs();
+      if (_scoreTie) return diff == 0;
+      if (_scoreMin != null && diff < _scoreMin!) return false;
+      if (_scoreMax != null && diff > _scoreMax!) return false;
+      return true;
     }
 
-    int absDiff(Scenario s) => (s.homeScore - s.guestScore).abs();
-    bool inScore(Scenario s) =>
-        absDiff(s) >= _scoreRange.min && absDiff(s) <= _scoreRange.max;
+    bool inClock(Scenario s) {
+      final value = s.gameClockTenths;
+      if (_clockMin != null && value < _clockMin!) return false;
+      if (_clockMax != null && value > _clockMax!) return false;
+      return true;
+    }
 
-    return list.where((e) {
-      if (!inTime(e.createdAt)) return false;
-      if (_startType != null && e.scenario.startType != _startType)
-        return false;
-      if (!inScore(e.scenario)) return false;
+    bool inStartType(Scenario s) =>
+        _selectedStarts.isEmpty || _selectedStarts.contains(s.startType);
+
+    return list.where((entry) {
+      final scenario = entry.scenario;
+      if (!inStartType(scenario)) return false;
+      if (!inScore(scenario)) return false;
+      if (!inClock(scenario)) return false;
       if (_query.isNotEmpty) {
         final q = _query.toLowerCase();
-        if (!e.notes.toLowerCase().contains(q)) return false;
+        if (!entry.notes.toLowerCase().contains(q)) return false;
       }
       return true;
     }).toList();
   }
 
-  Widget _timeDropdown() {
-    return InputDecorator(
-      decoration: const InputDecoration(
-          labelText: 'Time Range', border: OutlineInputBorder()),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<TimeFilter>(
-          value: _timeFilter,
-          isExpanded: true,
-          items: const [
-            DropdownMenuItem(value: TimeFilter.all, child: Text('All time')),
-            DropdownMenuItem(
-                value: TimeFilter.last24h, child: Text('Last 24 hours')),
-            DropdownMenuItem(
-                value: TimeFilter.last7d, child: Text('Last 7 days')),
-            DropdownMenuItem(
-                value: TimeFilter.last30d, child: Text('Last 30 days')),
-          ],
-          onChanged: (v) => setState(() => _timeFilter = v ?? TimeFilter.all),
-        ),
-      ),
+  Widget _historyFilterField(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: InputDecorator(
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            ).copyWith(labelText: label, alignLabelWithHint: true),
+            child: InkWell(
+              onTap: onTap,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      value,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_drop_down,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _startTypeDropdown() {
-    final items = <DropdownMenuItem<StartType?>>[
-      const DropdownMenuItem<StartType?>(
-          value: null, child: Text('All start types')),
-      ...StartType.values.map((st) => DropdownMenuItem<StartType?>(
-          value: st, child: Text(startTypeLabel(st)))),
-    ];
-    return InputDecorator(
-      decoration: const InputDecoration(
-          labelText: 'Start Type', border: OutlineInputBorder()),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<StartType?>(
-          value: _startType,
-          isExpanded: true,
-          items: items,
-          onChanged: (v) => setState(() => _startType = v),
-        ),
-      ),
-    );
+  String _scoreLabel() {
+    if (_scoreTie) return 'Tied only';
+    if (_scoreMin == null && _scoreMax == null) return 'Any';
+    if (_scoreMin == null) return '≤ $_scoreMax';
+    if (_scoreMax == null) return '$_scoreMin+';
+    if (_scoreMin == _scoreMax) return '$_scoreMin';
+    return '$_scoreMin-$_scoreMax';
   }
 
-  Widget _scoreRangeDropdown() {
-    final items = _scoreFilterOptions
-        .map((r) => DropdownMenuItem<IntRange>(value: r, child: Text(r.label)))
-        .toList();
-    return InputDecorator(
-      decoration: const InputDecoration(
-          labelText: 'Score Differential', border: OutlineInputBorder()),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<IntRange>(
-          value: _scoreRange,
-          isExpanded: true,
-          items: items,
-          onChanged: (v) => setState(() => _scoreRange = v ?? _scoreRange),
-        ),
-      ),
+  String _clockLabel() {
+    final min = _clockMin;
+    final max = _clockMax;
+    if (min == null && max == null) return 'Any';
+    if (min == null) return '≤ ${_formatClockValue(max!)}';
+    if (max == null) return '${_formatClockValue(min)}+';
+    if (min == max) return _formatClockValue(min);
+    return '${_formatClockValue(min)} - ${_formatClockValue(max)}';
+  }
+
+  String _startLabel() {
+    if (_selectedStarts.isEmpty) return 'Any';
+    if (_selectedStarts.length == StartType.values.length) return 'All';
+    return _selectedStarts.map(startTypeLabel).join(', ');
+  }
+
+  String _formatClockValue(int tenths) {
+    final seconds = tenths ~/ 10;
+    final tenthsPart = tenths % 10;
+    if (tenths >= 600) {
+      final minutes = seconds ~/ 60;
+      final remaining = seconds % 60;
+      return '${minutes}m ${remaining.toString().padLeft(2, '0')}s';
+    }
+    if (tenthsPart == 0) {
+      return '$seconds' 's';
+    }
+    return '$seconds.${tenthsPart}s';
+  }
+
+  Future<void> _showScoreSelector() async {
+    final result = await showModalBottomSheet<ScoreDiffSelection>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        int? tempMin = _scoreMin;
+        int? tempMax = _scoreMax;
+        bool tie = _scoreTie;
+        final minController = FixedExtentScrollController(
+            initialItem: _scoreOptionIndex(tempMin));
+        final maxController = FixedExtentScrollController(
+            initialItem: _scoreOptionIndex(tempMax));
+        return SafeArea(
+          child: StatefulBuilder(
+            builder: (context, sheetSetState) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Score Differential',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      value: tie,
+                      onChanged: (value) =>
+                          sheetSetState(() => tie = value ?? false),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Tie only'),
+                    ),
+                    const SizedBox(height: 8),
+                    Opacity(
+                      opacity: tie ? 0.4 : 1,
+                      child: IgnorePointer(
+                        ignoring: tie,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  const Text('MIN'),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    height: 160,
+                                    child: CupertinoPicker(
+                                      scrollController: minController,
+                                      itemExtent: 32,
+                                      useMagnifier: true,
+                                      magnification: 1.08,
+                                      onSelectedItemChanged: (index) =>
+                                          sheetSetState(
+                                        () => tempMin = _scoreOptions[index],
+                                      ),
+                                      children: _scoreOptions
+                                          .map((value) => Center(
+                                                child: Text(value == null
+                                                    ? 'ANY'
+                                                    : '$value'),
+                                              ))
+                                          .toList(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  const Text('MAX'),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    height: 160,
+                                    child: CupertinoPicker(
+                                      scrollController: maxController,
+                                      itemExtent: 32,
+                                      useMagnifier: true,
+                                      magnification: 1.08,
+                                      onSelectedItemChanged: (index) =>
+                                          sheetSetState(
+                                        () => tempMax = _scoreOptions[index],
+                                      ),
+                                      children: _scoreOptions
+                                          .map((value) => Center(
+                                                child: Text(value == null
+                                                    ? 'ANY'
+                                                    : '$value'),
+                                              ))
+                                          .toList(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            sheetSetState(() {
+                              tempMin = null;
+                              tempMax = null;
+                              tie = false;
+                              minController.jumpToItem(0);
+                              maxController.jumpToItem(0);
+                            });
+                          },
+                          child: const Text('Clear'),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(
+                              ScoreDiffSelection(
+                                min: tie ? null : tempMin,
+                                max: tie ? null : tempMax,
+                                tie: tie,
+                              ),
+                            );
+                          },
+                          child: const Text('Apply'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
+
+    if (result != null) {
+      setState(() {
+        _scoreTie = result.tie;
+        _scoreMin = result.tie ? null : result.min;
+        _scoreMax = result.tie ? null : result.max;
+      });
+    }
+  }
+
+  Future<void> _showClockSelector() async {
+    final result = await showModalBottomSheet<ClockSelection>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        int? tempMin = _clockMin;
+        int? tempMax = _clockMax;
+        final minController = FixedExtentScrollController(
+            initialItem: _clockOptionIndex(_clockMinOptions, tempMin));
+        final maxController = FixedExtentScrollController(
+            initialItem: _clockOptionIndex(_clockMaxOptions, tempMax));
+        return SafeArea(
+          child: StatefulBuilder(
+            builder: (context, sheetSetState) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Game Clock',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            children: [
+                              const Text('MIN'),
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                height: 160,
+                                child: CupertinoPicker(
+                                  scrollController: minController,
+                                  itemExtent: 32,
+                                  useMagnifier: true,
+                                  magnification: 1.08,
+                                  onSelectedItemChanged: (index) =>
+                                      sheetSetState(
+                                    () => tempMin = _clockMinOptions[index],
+                                  ),
+                                  children: _clockMinOptions
+                                      .map((value) => Center(
+                                            child:
+                                                Text(_clockOptionLabel(value)),
+                                          ))
+                                      .toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              const Text('MAX'),
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                height: 160,
+                                child: CupertinoPicker(
+                                  scrollController: maxController,
+                                  itemExtent: 32,
+                                  useMagnifier: true,
+                                  magnification: 1.08,
+                                  onSelectedItemChanged: (index) =>
+                                      sheetSetState(
+                                    () => tempMax = _clockMaxOptions[index],
+                                  ),
+                                  children: _clockMaxOptions
+                                      .map((value) => Center(
+                                            child:
+                                                Text(_clockOptionLabel(value)),
+                                          ))
+                                      .toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            sheetSetState(() {
+                              tempMin = null;
+                              tempMax = null;
+                              minController.jumpToItem(0);
+                              maxController.jumpToItem(0);
+                            });
+                          },
+                          child: const Text('Clear'),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(
+                              ClockSelection(
+                                minTenths: tempMin,
+                                maxTenths: tempMax,
+                              ),
+                            );
+                          },
+                          child: const Text('Apply'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        _clockMin = result.minTenths;
+        _clockMax = result.maxTenths;
+      });
+    }
+  }
+
+  Future<void> _showStartSelector() async {
+    final result = await showModalBottomSheet<Set<StartType>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return SafeArea(
+          child: _StartTypeSheet(
+            initialSelection: Set<StartType>.from(_selectedStarts),
+            onApply: (selection) =>
+                Navigator.of(context).pop(Set<StartType>.from(selection)),
+          ),
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedStarts
+          ..clear()
+          ..addAll(result);
+      });
+    }
+  }
+
+  List<int?> _buildClockMinOptions() {
+    final values = <int?>[null, 1];
+    for (var second = 1; second <= 180; second++) {
+      values.add(second * 10);
+    }
+    return values;
+  }
+
+  List<int?> _buildClockMaxOptions() {
+    final values = <int?>[null];
+    for (var second = 1; second <= 180; second++) {
+      values.add(second * 10);
+    }
+    return values;
+  }
+
+  int _scoreOptionIndex(int? value) {
+    final index = _scoreOptions.indexOf(value);
+    return index >= 0 ? index : 0;
+  }
+
+  int _clockOptionIndex(List<int?> options, int? value) {
+    final index = options.indexOf(value);
+    return index >= 0 ? index : 0;
+  }
+
+  String _clockOptionLabel(int? tenths) {
+    if (tenths == null) return 'ANY';
+    return _formatClockValue(tenths);
   }
 
   Widget _searchField() {
@@ -965,7 +1580,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
 class _HistoryCard extends StatelessWidget {
   final ScenarioLogEntry entry;
-  const _HistoryCard({required this.entry});
+  final VoidCallback onDelete;
+  const _HistoryCard({required this.entry, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -975,53 +1591,79 @@ class _HistoryCard extends StatelessWidget {
     final timestamp =
         '${time.year}-${two(time.month)}-${two(time.day)} ${two(time.hour)}:${two(time.minute)}';
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Stack(
+      children: [
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            side:
+                BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(timestamp, style: Theme.of(context).textTheme.labelMedium),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: Theme.of(context).colorScheme.secondaryContainer,
-                  ),
-                  child: Text('Start Type: ${startTypeLabel(s.startType)}',
-                      style: Theme.of(context).textTheme.labelSmall),
+                Row(
+                  children: [
+                    Text(timestamp,
+                        style: Theme.of(context).textTheme.labelMedium),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                      ),
+                      child: Text('Start Type: ${startTypeLabel(s.startType)}',
+                          style: Theme.of(context).textTheme.labelSmall),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    _kv('Game', formatGameClockTenths(s.gameClockTenths)),
+                    _kv(
+                        'Shot',
+                        (s.hideShotClock || s.shotClockBlank)
+                            ? '––'
+                            : '${s.shotClockSeconds}'),
+                    _kv('Period', periodLabel(s.period)),
+                    _kv(
+                        'Possession',
+                        s.possession == TeamSide.home
+                            ? entry.homeTeamName
+                            : entry.guestTeamName),
+                    _kv('Score', '${s.homeScore} - ${s.guestScore}'),
+                    _kv('Fouls (H/G)', '${s.homeFouls}/${s.guestFouls}'),
+                    _kv('TOL (H/G)', '${s.homeTimeouts}/${s.guestTimeouts}'),
+                  ],
+                ),
+                if (entry.notes.trim().isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(entry.notes,
+                      style: Theme.of(context).textTheme.bodyMedium),
+                ],
               ],
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                _kv('Game', formatGameClockTenths(s.gameClockTenths)),
-                _kv('Shot', (s.hideShotClock ? '––' : '${s.shotClockSeconds}')),
-                _kv('Period', periodLabel(s.period)),
-                _kv('Possession',
-                    s.possession == TeamSide.home ? 'Home' : 'Guest'),
-                _kv('Score', '${s.homeScore} - ${s.guestScore}'),
-                _kv('Fouls (H/G)', '${s.homeFouls}/${s.guestFouls}'),
-                _kv('TOL (H/G)', '${s.homeTimeouts}/${s.guestTimeouts}'),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(entry.notes, style: Theme.of(context).textTheme.bodyMedium),
-          ],
+          ),
         ),
-      ),
+        Positioned(
+          right: 8,
+          bottom: 4,
+          child: IconButton(
+            onPressed: onDelete,
+            icon: const Icon(Icons.close, color: Colors.red),
+            tooltip: 'Remove from history',
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1048,14 +1690,14 @@ class _RangeSelector extends StatefulWidget {
   final ScenarioController controller;
   final VoidCallback onChanged;
   final VoidCallback? onReset;
-  final bool hideShotClock;
   final ValueChanged<bool> onHideShotClockChanged;
+  final ValueChanged<Competition>? onCompetitionChanged;
   const _RangeSelector({
     required this.controller,
     required this.onChanged,
     this.onReset,
-    required this.hideShotClock,
     required this.onHideShotClockChanged,
+    this.onCompetitionChanged,
   });
 
   @override
@@ -1094,6 +1736,9 @@ class _RangeSelectorState extends State<_RangeSelector> {
   IntRange? _foulRange;
   IntRange? _timeoutRange;
   PossessionPreference? _possessionPreference;
+  final List<_SavedFilter> _favorites = <_SavedFilter>[];
+  String? _selectedFavoriteName;
+  static const _favoritesFileName = 'favorites.json';
 
   static const IntRange _nbaFoulRange = IntRange(3, 5, '3-5');
   static const IntRange _fibaFoulRange = IntRange(2, 4, '2-4');
@@ -1128,6 +1773,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
     _foulRange = widget.controller.settings.foulRange;
     _timeoutRange = widget.controller.settings.timeoutRange;
     _possessionPreference = widget.controller.settings.possessionPreference;
+    unawaited(_loadFavorites());
   }
 
   List<int?> _buildClockMinOptions() {
@@ -1147,11 +1793,133 @@ class _RangeSelectorState extends State<_RangeSelector> {
   }
 
   bool get _hasAdvancedFilters =>
-      _foulRange != null || _timeoutRange != null || _possessionPreference != null;
+      _foulRange != null ||
+      _timeoutRange != null ||
+      _possessionPreference != null ||
+      widget.controller.settings.competition != Competition.nba;
+
+  Future<File> _favoritesFile() async {
+    return AppStorage.instance.file(_favoritesFileName);
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final file = await _favoritesFile();
+      if (!await file.exists()) return;
+      final raw = await file.readAsString();
+      if (raw.trim().isEmpty) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return;
+      final loaded = <_SavedFilter>[];
+      for (final entry in decoded) {
+        try {
+          if (entry is Map<String, dynamic>) {
+            final filter = _SavedFilter.fromJson(entry);
+            if (filter != null) {
+              loaded.add(filter);
+            }
+          } else if (entry is Map) {
+            final filter =
+                _SavedFilter.fromJson(Map<String, dynamic>.from(entry));
+            if (filter != null) {
+              loaded.add(filter);
+            }
+          }
+        } catch (_) {
+          // Skip malformed favorite entries.
+        }
+      }
+      final deduped = <String, _SavedFilter>{};
+      for (final filter in loaded) {
+        deduped[filter.name.toLowerCase()] = filter;
+      }
+      final favorites = deduped.values.toList();
+      if (!mounted) return;
+      setState(() {
+        _favorites
+          ..clear()
+          ..addAll(favorites);
+        _sortFavorites();
+        if (_selectedFavoriteName != null &&
+            !_favorites.any((f) =>
+                f.name.toLowerCase() ==
+                _selectedFavoriteName!.toLowerCase())) {
+          _selectedFavoriteName = null;
+        }
+      });
+    } catch (e) {
+      debugPrint('Failed to load favorites: $e');
+    }
+  }
+
+  Future<void> _persistFavorites() async {
+    try {
+      final file = await _favoritesFile();
+      final data = _favorites.map((f) => f.toJson()).toList();
+      await file.writeAsString(jsonEncode(data));
+    } catch (e) {
+      debugPrint('Failed to save favorites: $e');
+    }
+  }
+
+  void _sortFavorites() {
+    _favorites.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+  }
+
+  void _deleteFavorite(String name) {
+    final initialLength = _favorites.length;
+    setState(() {
+      _favorites.removeWhere(
+        (existing) => existing.name.toLowerCase() == name.toLowerCase(),
+      );
+      if (_selectedFavoriteName != null &&
+          _selectedFavoriteName!.toLowerCase() == name.toLowerCase()) {
+        _selectedFavoriteName = null;
+      }
+    });
+    if (_favorites.length != initialLength) {
+      unawaited(_persistFavorites());
+    }
+  }
+
+  double _favoritesMenuWidth(BuildContext context, TextStyle? textStyle) {
+    if (_favorites.isEmpty) return 0;
+    final style = textStyle ??
+        Theme.of(context)
+            .textTheme
+            .bodySmall
+            ?.copyWith(fontWeight: FontWeight.w600) ??
+        const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
+    final painter = TextPainter(
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+    );
+    double maxWidth = 0;
+    for (final favorite in _favorites) {
+      painter
+        ..text = TextSpan(text: favorite.name, style: style)
+        ..layout();
+      maxWidth = math.max(maxWidth, painter.width);
+    }
+    // Add padding for menu content and delete icon.
+    maxWidth += 48;
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 0) {
+      maxWidth = math.min(maxWidth, screenWidth - 32);
+    }
+    return math.max(0, maxWidth);
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final favoritesTextStyle = Theme.of(context)
+        .textTheme
+        .bodySmall
+        ?.copyWith(fontWeight: FontWeight.w600);
+    final favoritesMenuWidth = _favoritesMenuWidth(context, favoritesTextStyle);
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 10, 12, 4),
       padding: const EdgeInsets.all(12),
@@ -1195,48 +1963,68 @@ class _RangeSelectorState extends State<_RangeSelector> {
           const SizedBox(height: 12),
           Row(
             children: [
+              Expanded(
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Favorites',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  ),
+                  child: _FavoritesMenuButton(
+                    favorites: _favorites,
+                    selectedName: _selectedFavoriteName,
+                    textStyle: favoritesTextStyle,
+                    menuWidth: favoritesMenuWidth,
+                    onSelect: _applyFavorite,
+                    onDelete: _deleteFavorite,
+                    placeholder: 'SELECT',
+                    isEnabled: _favorites.isNotEmpty,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               OutlinedButton(
                 onPressed: _openMoreFilters,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _hasAdvancedFilters ? scheme.primary : null,
-                  side: BorderSide(
-                    color: _hasAdvancedFilters
-                        ? scheme.primary
-                        : scheme.outlineVariant,
-                    width: 1.4,
+                  minimumSize: const Size(0, 34),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
-                  minimumSize: const Size(0, 40),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
                 child: const Text('MORE'),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: _saveCurrentFilters,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 34),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                child: const Text('Save Filters'),
+              ),
+              const SizedBox(width: 8),
               TextButton(
                 onPressed: _resetFilters,
                 style: TextButton.styleFrom(
-                  minimumSize: const Size(0, 40),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                ),
-                child: const Text('RESET'),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Checkbox(
-                        visualDensity: VisualDensity.compact,
-                        value: widget.hideShotClock,
-                        onChanged: (value) =>
-                            widget.onHideShotClockChanged(value ?? false),
-                      ),
-                      const SizedBox(width: 4),
-                      const Text('Hide Shot Clock'),
-                    ],
+                  minimumSize: const Size(0, 34),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
+                child: const Text('RESET'),
               ),
             ],
           ),
@@ -1244,6 +2032,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
       ),
     );
   }
+
   Widget _filterField(
     BuildContext context, {
     required String label,
@@ -1295,10 +2084,10 @@ class _RangeSelectorState extends State<_RangeSelector> {
         int? tempMin = _scoreMin;
         int? tempMax = _scoreMax;
         bool tie = _scoreTie;
-        final minController =
-            FixedExtentScrollController(initialItem: _scoreOptionIndex(tempMin));
-        final maxController =
-            FixedExtentScrollController(initialItem: _scoreOptionIndex(tempMax));
+        final minController = FixedExtentScrollController(
+            initialItem: _scoreOptionIndex(tempMin));
+        final maxController = FixedExtentScrollController(
+            initialItem: _scoreOptionIndex(tempMax));
 
         return SafeArea(
           child: StatefulBuilder(
@@ -1320,7 +2109,8 @@ class _RangeSelectorState extends State<_RangeSelector> {
                           child: Column(
                             children: [
                               Text('MIN',
-                                  style: Theme.of(context).textTheme.labelMedium),
+                                  style:
+                                      Theme.of(context).textTheme.labelMedium),
                               const SizedBox(height: 8),
                               SizedBox(
                                 height: 160,
@@ -1330,11 +2120,13 @@ class _RangeSelectorState extends State<_RangeSelector> {
                                   useMagnifier: true,
                                   magnification: 1.08,
                                   onSelectedItemChanged: (index) {
-                                    sheetSetState(() => tempMin = _scoreOptions[index]);
+                                    sheetSetState(
+                                        () => tempMin = _scoreOptions[index]);
                                   },
                                   children: _scoreOptions
                                       .map((value) => Center(
-                                            child: Text(_scoreOptionLabel(value)),
+                                            child:
+                                                Text(_scoreOptionLabel(value)),
                                           ))
                                       .toList(),
                                 ),
@@ -1347,7 +2139,8 @@ class _RangeSelectorState extends State<_RangeSelector> {
                           child: Column(
                             children: [
                               Text('MAX',
-                                  style: Theme.of(context).textTheme.labelMedium),
+                                  style:
+                                      Theme.of(context).textTheme.labelMedium),
                               const SizedBox(height: 8),
                               SizedBox(
                                 height: 160,
@@ -1357,11 +2150,13 @@ class _RangeSelectorState extends State<_RangeSelector> {
                                   useMagnifier: true,
                                   magnification: 1.08,
                                   onSelectedItemChanged: (index) {
-                                    sheetSetState(() => tempMax = _scoreOptions[index]);
+                                    sheetSetState(
+                                        () => tempMax = _scoreOptions[index]);
                                   },
                                   children: _scoreOptions
                                       .map((value) => Center(
-                                            child: Text(_scoreOptionLabel(value)),
+                                            child:
+                                                Text(_scoreOptionLabel(value)),
                                           ))
                                       .toList(),
                                 ),
@@ -1373,7 +2168,8 @@ class _RangeSelectorState extends State<_RangeSelector> {
                     ),
                     CheckboxListTile(
                       value: tie,
-                      onChanged: (value) => sheetSetState(() => tie = value ?? false),
+                      onChanged: (value) =>
+                          sheetSetState(() => tie = value ?? false),
                       title: const Text('Tied'),
                       controlAffinity: ListTileControlAffinity.leading,
                     ),
@@ -1424,6 +2220,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
       _applyScoreSelection(result);
     }
   }
+
   Future<void> _showClockSelector() async {
     final result = await showModalBottomSheet<ClockSelection>(
       context: context,
@@ -1458,7 +2255,8 @@ class _RangeSelectorState extends State<_RangeSelector> {
                           child: Column(
                             children: [
                               Text('MIN',
-                                  style: Theme.of(context).textTheme.labelMedium),
+                                  style:
+                                      Theme.of(context).textTheme.labelMedium),
                               const SizedBox(height: 8),
                               SizedBox(
                                 height: 180,
@@ -1468,11 +2266,13 @@ class _RangeSelectorState extends State<_RangeSelector> {
                                   useMagnifier: true,
                                   magnification: 1.08,
                                   onSelectedItemChanged: (index) {
-                                    sheetSetState(() => tempMin = _clockMinOptions[index]);
+                                    sheetSetState(() =>
+                                        tempMin = _clockMinOptions[index]);
                                   },
                                   children: _clockMinOptions
                                       .map((value) => Center(
-                                            child: Text(_formatClockOptionLabel(value)),
+                                            child: Text(
+                                                _formatClockOptionLabel(value)),
                                           ))
                                       .toList(),
                                 ),
@@ -1485,7 +2285,8 @@ class _RangeSelectorState extends State<_RangeSelector> {
                           child: Column(
                             children: [
                               Text('MAX',
-                                  style: Theme.of(context).textTheme.labelMedium),
+                                  style:
+                                      Theme.of(context).textTheme.labelMedium),
                               const SizedBox(height: 8),
                               SizedBox(
                                 height: 180,
@@ -1495,11 +2296,13 @@ class _RangeSelectorState extends State<_RangeSelector> {
                                   useMagnifier: true,
                                   magnification: 1.08,
                                   onSelectedItemChanged: (index) {
-                                    sheetSetState(() => tempMax = _clockMaxOptions[index]);
+                                    sheetSetState(() =>
+                                        tempMax = _clockMaxOptions[index]);
                                   },
                                   children: _clockMaxOptions
                                       .map((value) => Center(
-                                            child: Text(_formatClockOptionLabel(value)),
+                                            child: Text(
+                                                _formatClockOptionLabel(value)),
                                           ))
                                       .toList(),
                                 ),
@@ -1574,10 +2377,11 @@ class _RangeSelectorState extends State<_RangeSelector> {
       _applyStartSelection(result);
     }
   }
+
   Future<void> _openMoreFilters() async {
-    final competition = widget.controller.settings.competition;
-    final foulBounds = _foulBoundsForCompetition(competition);
-    final timeoutBounds = _timeoutBoundsForCompetition(competition);
+    var competition = widget.controller.settings.competition;
+    var foulBounds = _foulBoundsForCompetition(competition);
+    var timeoutBounds = _timeoutBoundsForCompetition(competition);
 
     int? foulsMin = _clampOrNull(_foulRange?.min, foulBounds);
     int? foulsMax = _clampOrNull(_foulRange?.max, foulBounds);
@@ -1585,15 +2389,15 @@ class _RangeSelectorState extends State<_RangeSelector> {
     int? timeoutsMax = _clampOrNull(_timeoutRange?.max, timeoutBounds);
     PossessionPreference? possession = _possessionPreference;
 
-    final foulMinOptions = _buildNumericOptions(foulBounds);
-    final foulMaxOptions = _buildNumericOptions(foulBounds);
-    final timeoutMinOptions = _buildNumericOptions(timeoutBounds);
-    final timeoutMaxOptions = _buildNumericOptions(timeoutBounds);
+    List<int?> foulMinOptions = _buildNumericOptions(foulBounds);
+    List<int?> foulMaxOptions = _buildNumericOptions(foulBounds);
+    List<int?> timeoutMinOptions = _buildNumericOptions(timeoutBounds);
+    List<int?> timeoutMaxOptions = _buildNumericOptions(timeoutBounds);
 
-    final foulMinController =
-        FixedExtentScrollController(initialItem: _optionIndex(foulMinOptions, foulsMin));
-    final foulMaxController =
-        FixedExtentScrollController(initialItem: _optionIndex(foulMaxOptions, foulsMax));
+    final foulMinController = FixedExtentScrollController(
+        initialItem: _optionIndex(foulMinOptions, foulsMin));
+    final foulMaxController = FixedExtentScrollController(
+        initialItem: _optionIndex(foulMaxOptions, foulsMax));
     final timeoutMinController = FixedExtentScrollController(
         initialItem: _optionIndex(timeoutMinOptions, timeoutsMin));
     final timeoutMaxController = FixedExtentScrollController(
@@ -1615,6 +2419,80 @@ class _RangeSelectorState extends State<_RangeSelector> {
                     Text(
                       'More Filters',
                       style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Competition',
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<Competition>(
+                          value: competition,
+                          isExpanded: true,
+                          items: Competition.values
+                              .map(
+                                (c) => DropdownMenuItem<Competition>(
+                                  value: c,
+                                  child: Text(competitionLabel(c)),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null || value == competition) return;
+                            final newFoulBounds =
+                                _foulBoundsForCompetition(value);
+                            final newTimeoutBounds =
+                                _timeoutBoundsForCompetition(value);
+
+                            foulsMin =
+                                _clampOrNull(foulsMin, newFoulBounds);
+                            foulsMax =
+                                _clampOrNull(foulsMax, newFoulBounds);
+                            timeoutsMin =
+                                _clampOrNull(timeoutsMin, newTimeoutBounds);
+                            timeoutsMax =
+                                _clampOrNull(timeoutsMax, newTimeoutBounds);
+
+                            final updatedFoulMinOptions =
+                                _buildNumericOptions(newFoulBounds);
+                            final updatedFoulMaxOptions =
+                                _buildNumericOptions(newFoulBounds);
+                            final updatedTimeoutMinOptions =
+                                _buildNumericOptions(newTimeoutBounds);
+                            final updatedTimeoutMaxOptions =
+                                _buildNumericOptions(newTimeoutBounds);
+
+                            final nextFoulMinIndex = _optionIndex(
+                                updatedFoulMinOptions, foulsMin);
+                            final nextFoulMaxIndex = _optionIndex(
+                                updatedFoulMaxOptions, foulsMax);
+                            final nextTimeoutMinIndex = _optionIndex(
+                                updatedTimeoutMinOptions, timeoutsMin);
+                            final nextTimeoutMaxIndex = _optionIndex(
+                                updatedTimeoutMaxOptions, timeoutsMax);
+
+                            sheetSetState(() {
+                              competition = value;
+                              foulBounds = newFoulBounds;
+                              timeoutBounds = newTimeoutBounds;
+                              foulMinOptions = updatedFoulMinOptions;
+                              foulMaxOptions = updatedFoulMaxOptions;
+                              timeoutMinOptions = updatedTimeoutMinOptions;
+                              timeoutMaxOptions = updatedTimeoutMaxOptions;
+                            });
+
+                            foulMinController.jumpToItem(nextFoulMinIndex);
+                            foulMaxController.jumpToItem(nextFoulMaxIndex);
+                            timeoutMinController.jumpToItem(
+                                nextTimeoutMinIndex);
+                            timeoutMaxController.jumpToItem(
+                                nextTimeoutMaxIndex);
+                          },
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     _rangeWheelSection(
@@ -1656,7 +2534,8 @@ class _RangeSelectorState extends State<_RangeSelector> {
                         border: OutlineInputBorder(),
                         contentPadding:
                             EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      ).copyWith(labelText: 'Possession', alignLabelWithHint: true),
+                      ).copyWith(
+                          labelText: 'Possession', alignLabelWithHint: true),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<PossessionPreference?>(
                           value: possession,
@@ -1671,7 +2550,8 @@ class _RangeSelectorState extends State<_RangeSelector> {
                                 value: PossessionPreference.losing,
                                 child: Text('Losing Team')),
                           ],
-                          onChanged: (value) => sheetSetState(() => possession = value),
+                          onChanged: (value) =>
+                              sheetSetState(() => possession = value),
                         ),
                       ),
                     ),
@@ -1681,16 +2561,29 @@ class _RangeSelectorState extends State<_RangeSelector> {
                         TextButton(
                           onPressed: () {
                             sheetSetState(() {
+                              competition = Competition.nba;
+                              foulBounds =
+                                  _foulBoundsForCompetition(competition);
+                              timeoutBounds =
+                                  _timeoutBoundsForCompetition(competition);
+                              foulMinOptions =
+                                  _buildNumericOptions(foulBounds);
+                              foulMaxOptions =
+                                  _buildNumericOptions(foulBounds);
+                              timeoutMinOptions =
+                                  _buildNumericOptions(timeoutBounds);
+                              timeoutMaxOptions =
+                                  _buildNumericOptions(timeoutBounds);
                               foulsMin = null;
                               foulsMax = null;
                               timeoutsMin = null;
                               timeoutsMax = null;
                               possession = null;
-                              foulMinController.jumpToItem(0);
-                              foulMaxController.jumpToItem(0);
-                              timeoutMinController.jumpToItem(0);
-                              timeoutMaxController.jumpToItem(0);
                             });
+                            foulMinController.jumpToItem(0);
+                            foulMaxController.jumpToItem(0);
+                            timeoutMinController.jumpToItem(0);
+                            timeoutMaxController.jumpToItem(0);
                           },
                           child: const Text('Clear'),
                         ),
@@ -1720,6 +2613,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
                             }
                             Navigator.of(context).pop(
                               _MoreFiltersResult(
+                                competition: competition,
                                 fouls: foulsRange,
                                 timeouts: timeoutRange,
                                 possession: possession,
@@ -1741,6 +2635,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
 
     if (result != null) {
       _applyMoreFilters(
+        competition: result.competition,
         fouls: result.fouls,
         timeouts: result.timeouts,
         possession: result.possession,
@@ -1753,6 +2648,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
       _scoreMin = selection.tie ? null : selection.min;
       _scoreMax = selection.tie ? null : selection.max;
       _scoreTie = selection.tie;
+      _selectedFavoriteName = null;
     });
     widget.controller.setScoreDiffSelection(selection);
     widget.onChanged();
@@ -1762,6 +2658,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
     setState(() {
       _clockMin = selection.minTenths;
       _clockMax = selection.maxTenths;
+      _selectedFavoriteName = null;
     });
     widget.controller.setClockSelection(selection);
     widget.onChanged();
@@ -1772,12 +2669,14 @@ class _RangeSelectorState extends State<_RangeSelector> {
       _selectedStarts
         ..clear()
         ..addAll(selection);
+      _selectedFavoriteName = null;
     });
     widget.controller.setStartTypes(selection);
     widget.onChanged();
   }
 
   void _applyMoreFilters({
+    required Competition competition,
     IntRange? fouls,
     IntRange? timeouts,
     PossessionPreference? possession,
@@ -1786,10 +2685,13 @@ class _RangeSelectorState extends State<_RangeSelector> {
       _foulRange = fouls;
       _timeoutRange = timeouts;
       _possessionPreference = possession;
+      _selectedFavoriteName = null;
     });
+    widget.controller.setCompetition(competition);
     widget.controller.setFoulRange(fouls);
     widget.controller.setTimeoutRange(timeouts);
     widget.controller.setPossessionPreference(possession);
+    widget.onCompetitionChanged?.call(competition);
     widget.onChanged();
   }
 
@@ -1804,6 +2706,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
       _foulRange = null;
       _timeoutRange = null;
       _possessionPreference = null;
+      _selectedFavoriteName = null;
     });
     widget.controller.resetFilters();
     widget.controller.clearScenario();
@@ -1811,6 +2714,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
     widget.onHideShotClockChanged(false);
     widget.onReset?.call();
   }
+
   String _scoreLabel() {
     if (_scoreTie) return 'TIED';
     final min = _scoreMin;
@@ -1908,7 +2812,8 @@ class _RangeSelectorState extends State<_RangeSelector> {
       children: [
         Text(
           '$title ($summary)',
-          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          style:
+              theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
         Row(
@@ -1992,7 +2897,6 @@ class _RangeSelectorState extends State<_RangeSelector> {
     }
   }
 
-
   List<int?> _buildNumericOptions(IntRange bounds) {
     final values = <int?>[null];
     for (var value = bounds.min; value <= bounds.max; value++) {
@@ -2014,18 +2918,395 @@ class _RangeSelectorState extends State<_RangeSelector> {
   }
 
   String _numericOptionLabel(int? value) => value?.toString() ?? 'ANY';
+
+  Future<void> _saveCurrentFilters() async {
+    final name = await _promptFavoriteName();
+    if (name == null) return;
+
+    final favorite = _SavedFilter(
+      name: name,
+      score: ScoreDiffSelection(
+        min: _scoreTie ? null : _scoreMin,
+        max: _scoreTie ? null : _scoreMax,
+        tie: _scoreTie,
+      ),
+      clock: ClockSelection(minTenths: _clockMin, maxTenths: _clockMax),
+      startTypes: Set<StartType>.from(_selectedStarts),
+      fouls: _foulRange,
+      timeouts: _timeoutRange,
+      possession: _possessionPreference,
+    );
+
+    setState(() {
+      _favorites.removeWhere(
+        (existing) => existing.name.toLowerCase() == name.toLowerCase(),
+      );
+      _favorites.add(favorite);
+      _sortFavorites();
+      _selectedFavoriteName = favorite.name;
+    });
+
+    await _persistFavorites();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved filters as "$name"')),
+    );
+  }
+
+  void _applyFavorite(_SavedFilter favorite) {
+    setState(() {
+      _scoreTie = favorite.score.tie;
+      _scoreMin = favorite.score.tie ? null : favorite.score.min;
+      _scoreMax = favorite.score.tie ? null : favorite.score.max;
+      _clockMin = favorite.clock.minTenths;
+      _clockMax = favorite.clock.maxTenths;
+      _selectedStarts
+        ..clear()
+        ..addAll(favorite.startTypes);
+      _foulRange = favorite.fouls;
+      _timeoutRange = favorite.timeouts;
+      _possessionPreference = favorite.possession;
+      _selectedFavoriteName = favorite.name;
+    });
+
+    final startTypes = favorite.startTypes.isEmpty
+        ? null
+        : Set<StartType>.from(favorite.startTypes);
+    widget.controller.setScoreDiffSelection(favorite.score);
+    widget.controller.setClockSelection(favorite.clock);
+    widget.controller.setStartTypes(startTypes);
+    widget.controller.setFoulRange(favorite.fouls);
+    widget.controller.setTimeoutRange(favorite.timeouts);
+    widget.controller.setPossessionPreference(favorite.possession);
+    widget.onChanged();
+  }
+
+  Future<String?> _promptFavoriteName() async {
+    String? error;
+    final textController =
+        TextEditingController(text: _selectedFavoriteName ?? '');
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setLocalState) {
+            return AlertDialog(
+              title: const Text('Save Filters'),
+              content: TextField(
+                controller: textController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Enter name',
+                  errorText: error,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    final trimmed = textController.text.trim();
+                    if (trimmed.isEmpty) {
+                      setLocalState(() => error = 'Enter a name');
+                      return;
+                    }
+                    Navigator.of(context).pop(trimmed);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 class _MoreFiltersResult {
+  final Competition competition;
   final IntRange? fouls;
   final IntRange? timeouts;
   final PossessionPreference? possession;
 
   const _MoreFiltersResult({
+    required this.competition,
     this.fouls,
     this.timeouts,
     this.possession,
   });
+}
+
+class _FavoritesMenuButton extends StatelessWidget {
+  const _FavoritesMenuButton({
+    required this.favorites,
+    required this.selectedName,
+    required this.textStyle,
+    required this.menuWidth,
+    required this.onSelect,
+    required this.onDelete,
+    required this.placeholder,
+    required this.isEnabled,
+  });
+
+  final List<_SavedFilter> favorites;
+  final String? selectedName;
+  final TextStyle? textStyle;
+  final double menuWidth;
+  final ValueChanged<_SavedFilter> onSelect;
+  final ValueChanged<String> onDelete;
+  final String placeholder;
+  final bool isEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final normalizedName = selectedName?.toLowerCase();
+    _SavedFilter? selected;
+    if (normalizedName != null) {
+      for (final favorite in favorites) {
+        if (favorite.name.toLowerCase() == normalizedName) {
+          selected = favorite;
+          break;
+        }
+      }
+    }
+
+    final displayStyle = (selected == null
+            ? textStyle?.copyWith(color: theme.hintColor)
+            : textStyle) ??
+        theme.textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: selected == null ? theme.hintColor : null,
+        );
+
+    final double resolvedWidth =
+        math.max(menuWidth, 200); // ensure reasonable minimum width
+
+    return PopupMenuButton<_SavedFilter>(
+      enabled: isEnabled,
+      position: PopupMenuPosition.under,
+      constraints: BoxConstraints(minWidth: resolvedWidth),
+      tooltip: isEnabled ? 'Favorites' : null,
+      color: theme.colorScheme.surface,
+      itemBuilder: (context) {
+        return favorites
+            .map(
+              (favorite) => PopupMenuItem<_SavedFilter>(
+                padding: EdgeInsets.zero,
+                enabled: false,
+                child: SizedBox(
+                  width: resolvedWidth,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            onSelect(favorite);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 12),
+                            child: Text(
+                              favorite.name,
+                              style: textStyle ??
+                                  theme.textTheme.bodySmall
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          onDelete(favorite.name);
+                        },
+                        icon: const Icon(
+                          Icons.close,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        constraints: const BoxConstraints(),
+                        splashRadius: 18,
+                        tooltip: 'Delete',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+            .toList();
+      },
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              selected?.name ?? placeholder,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: displayStyle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.arrow_drop_down,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SavedFilter {
+  final String name;
+  final ScoreDiffSelection score;
+  final ClockSelection clock;
+  final Set<StartType> startTypes;
+  final IntRange? fouls;
+  final IntRange? timeouts;
+  final PossessionPreference? possession;
+
+  const _SavedFilter({
+    required this.name,
+    required this.score,
+    required this.clock,
+    required this.startTypes,
+    this.fouls,
+    this.timeouts,
+    this.possession,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'score': {
+        'min': score.min,
+        'max': score.max,
+        'tie': score.tie,
+      },
+      'clock': {
+        'minTenths': clock.minTenths,
+        'maxTenths': clock.maxTenths,
+      },
+      'startTypes': startTypes.map((type) => type.name).toList(),
+      'fouls': fouls == null
+          ? null
+          : {
+              'min': fouls!.min,
+              'max': fouls!.max,
+              'label': fouls!.label,
+            },
+      'timeouts': timeouts == null
+          ? null
+          : {
+              'min': timeouts!.min,
+              'max': timeouts!.max,
+              'label': timeouts!.label,
+            },
+      'possession': possession?.name,
+    };
+  }
+
+  static _SavedFilter? fromJson(Map<String, dynamic> json) {
+    final rawName = json['name'];
+    if (rawName is! String) return null;
+    final name = rawName.trim();
+    if (name.isEmpty) return null;
+
+    ScoreDiffSelection score = const ScoreDiffSelection();
+    final scoreMap = json['score'];
+    if (scoreMap is Map) {
+      final tie = scoreMap['tie'] == true;
+      final minValue = scoreMap['min'];
+      final maxValue = scoreMap['max'];
+      score = ScoreDiffSelection(
+        min: tie
+            ? null
+            : (minValue is num ? minValue.toInt() : score.min),
+        max: tie
+            ? null
+            : (maxValue is num ? maxValue.toInt() : score.max),
+        tie: tie,
+      );
+    }
+
+    ClockSelection clock = const ClockSelection();
+    final clockMap = json['clock'];
+    if (clockMap is Map) {
+      final minValue = clockMap['minTenths'];
+      final maxValue = clockMap['maxTenths'];
+      clock = ClockSelection(
+        minTenths: minValue is num ? minValue.toInt() : null,
+        maxTenths: maxValue is num ? maxValue.toInt() : null,
+      );
+    }
+
+    IntRange? parseRange(dynamic data) {
+      if (data is! Map) return null;
+      final minValue = data['min'];
+      final maxValue = data['max'];
+      if (minValue is! num || maxValue is! num) return null;
+      final minInt = minValue.toInt();
+      final maxInt = maxValue.toInt();
+      final labelValue = data['label'];
+      final label = labelValue is String && labelValue.isNotEmpty
+          ? labelValue
+          : '$minInt-$maxInt';
+      return IntRange(minInt, maxInt, label);
+    }
+
+    final startTypes = <StartType>{};
+    final startTypesList = json['startTypes'];
+    if (startTypesList is List) {
+      for (final entry in startTypesList) {
+        if (entry is! String) continue;
+        final match = StartType.values.where((type) => type.name == entry);
+        if (match.isNotEmpty) {
+          startTypes.add(match.first);
+        }
+      }
+    }
+
+    IntRange? fouls;
+    final foulsData = json['fouls'];
+    if (foulsData != null) {
+      fouls = parseRange(foulsData);
+    }
+
+    IntRange? timeouts;
+    final timeoutsData = json['timeouts'];
+    if (timeoutsData != null) {
+      timeouts = parseRange(timeoutsData);
+    }
+
+    PossessionPreference? possession;
+    final possessionValue = json['possession'];
+    if (possessionValue is String) {
+      for (final option in PossessionPreference.values) {
+        if (option.name == possessionValue) {
+          possession = option;
+          break;
+        }
+      }
+    }
+
+    return _SavedFilter(
+      name: name,
+      score: score,
+      clock: clock,
+      startTypes: startTypes,
+      fouls: fouls,
+      timeouts: timeouts,
+      possession: possession,
+    );
+  }
 }
 
 class _StartTypeSheet extends StatefulWidget {
@@ -2241,7 +3522,7 @@ class _Scoreboard extends StatelessWidget {
         (has && !shotClockHidden) ? '${s.shotClockSeconds}' : '—';
     const backgroundColor = Color(0xFF111111);
     const insetColor = Color(0xFF1E1E1E);
-    final borderColor = Colors.white.withOpacity(0.22);
+    final borderColor = Colors.white.withValues(alpha: 0.22);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -2265,7 +3546,7 @@ class _Scoreboard extends StatelessWidget {
             border: Border.all(color: borderColor, width: 3),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.35),
+                color: Colors.black.withValues(alpha: 0.35),
                 blurRadius: 20,
                 offset: const Offset(0, 12),
               ),
@@ -2278,7 +3559,8 @@ class _Scoreboard extends StatelessWidget {
             children: [
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: onEditGameClock == null ? null : () => onEditGameClock!(),
+                onTap:
+                    onEditGameClock == null ? null : () => onEditGameClock!(),
                 child: _BoxedClockTight(
                   text: gameClockText,
                   textStyle: theme.textTheme.displayMedium?.copyWith(
@@ -2333,8 +3615,9 @@ class _Scoreboard extends StatelessWidget {
                         backgroundColor: insetColor,
                         borderColor: borderColor,
                         compact: compact,
-                        onEditShotClock:
-                            onEditShotClock == null || !has ? null : onEditShotClock,
+                        onEditShotClock: onEditShotClock == null || !has
+                            ? null
+                            : onEditShotClock,
                       ),
                     ),
                     SizedBox(width: middleSpacing / 3),
@@ -2480,21 +3763,21 @@ class _TeamPanel extends StatelessWidget {
                     color: panelColor,
                     borderRadius: BorderRadius.zero,
                     border: Border.all(color: borderColor, width: 2.5),
-                  boxShadow: const [],
-                ),
-                padding: EdgeInsets.symmetric(
-                  horizontal: widthPadding,
-                  vertical: heightPadding,
-                ),
-                child: Center(
-                  child: _BalancedScoreText(
-                    text: scoreText,
-                    baseFont: baseFont,
-                    targetFontSize:
-                        math.max(fontSize, baseFont + (compact ? 12 : 32)),
-                    color: Colors.white,
+                    boxShadow: const [],
                   ),
-                ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: widthPadding,
+                    vertical: heightPadding,
+                  ),
+                  child: Center(
+                    child: _BalancedScoreText(
+                      text: scoreText,
+                      baseFont: baseFont,
+                      targetFontSize:
+                          math.max(fontSize, baseFont + (compact ? 12 : 32)),
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               );
             },
@@ -2605,7 +3888,7 @@ class _CenterPanel extends StatelessWidget {
       horizontalPadding: compact ? 8 : 12,
     );
     final shotClockColor =
-        dimShotClock ? Colors.white.withOpacity(0.35) : Colors.red;
+        dimShotClock ? Colors.white.withValues(alpha: 0.35) : Colors.red;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -2692,7 +3975,7 @@ class _StatPill extends StatelessWidget {
           style: theme.textTheme.labelMedium?.copyWith(
             fontWeight: FontWeight.w600,
             letterSpacing: 0.4,
-            color: textColor.withOpacity(0.8),
+            color: textColor.withValues(alpha: 0.8),
           ),
         ),
         SizedBox(height: compact ? 2 : 4),
@@ -2780,7 +4063,7 @@ class _TimeoutPill extends StatelessWidget {
     final labelStyle = theme.textTheme.labelMedium?.copyWith(
       fontWeight: FontWeight.w600,
       letterSpacing: 0.6,
-      color: foreground.withOpacity(0.8),
+      color: foreground.withValues(alpha: 0.8),
     );
     final int active = (timeouts ?? 0).clamp(0, 5);
 
@@ -2806,7 +4089,7 @@ class _TimeoutPill extends StatelessWidget {
               activeCount: active,
               totalCount: 5,
               activeColor: foreground,
-              inactiveColor: foreground.withOpacity(0.25),
+              inactiveColor: foreground.withValues(alpha: 0.25),
               dotSize: compact ? 4.5 : 6.5,
             ),
           ),
@@ -2860,8 +4143,10 @@ class _OutsideMeta extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = controller.scenario;
     final has = controller.hasScenario;
+    final homeTeam = controller.homeTeamName;
+    final guestTeam = controller.guestTeamName;
     final possessionStart = (has && s.startType != StartType.jumpBall)
-        ? (s.possession == TeamSide.home ? 'Home' : 'Guest')
+        ? (s.possession == TeamSide.home ? homeTeam : guestTeam)
         : '––';
     return Column(
       children: [
