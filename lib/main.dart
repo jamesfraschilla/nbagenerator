@@ -412,9 +412,20 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Column(
               children: [
+                _RangeSelector(
+                  controller: controller,
+                  onChanged: () => setState(() {}),
+                  onReset: _handleRangeReset,
+                  onHideShotClockChanged: _toggleHideShotClock,
+                  onCompetitionChanged: (competition) {
+                    _saveCompetition(competition);
+                  },
+                  initialHideShotClock: _forceHideShotClock || _hideShotClock,
+                ),
+                const SizedBox(height: 12),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   child: SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
@@ -432,18 +443,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-
-                _RangeSelector(
-                  controller: controller,
-                  onChanged: () => setState(() {}),
-                  onReset: _handleRangeReset,
-                  onHideShotClockChanged: _toggleHideShotClock,
-                  onCompetitionChanged: (competition) {
-                    _saveCompetition(competition);
-                  },
-                ),
                 const SizedBox(height: 8),
-
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
                   child: _OutsideMeta(controller: controller),
@@ -1692,12 +1692,14 @@ class _RangeSelector extends StatefulWidget {
   final VoidCallback? onReset;
   final ValueChanged<bool> onHideShotClockChanged;
   final ValueChanged<Competition>? onCompetitionChanged;
+  final bool initialHideShotClock;
   const _RangeSelector({
     required this.controller,
     required this.onChanged,
     this.onReset,
     required this.onHideShotClockChanged,
     this.onCompetitionChanged,
+    this.initialHideShotClock = false,
   });
 
   @override
@@ -1739,6 +1741,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
   final List<_SavedFilter> _favorites = <_SavedFilter>[];
   String? _selectedFavoriteName;
   static const _favoritesFileName = 'favorites.json';
+  bool _hideShotClock = false;
 
   static const IntRange _nbaFoulRange = IntRange(3, 5, '3-5');
   static const IntRange _fibaFoulRange = IntRange(2, 4, '2-4');
@@ -1773,6 +1776,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
     _foulRange = widget.controller.settings.foulRange;
     _timeoutRange = widget.controller.settings.timeoutRange;
     _possessionPreference = widget.controller.settings.possessionPreference;
+    _hideShotClock = widget.initialHideShotClock;
     unawaited(_loadFavorites());
   }
 
@@ -1796,7 +1800,8 @@ class _RangeSelectorState extends State<_RangeSelector> {
       _foulRange != null ||
       _timeoutRange != null ||
       _possessionPreference != null ||
-      widget.controller.settings.competition != Competition.nba;
+      widget.controller.settings.competition != Competition.nba ||
+      _hideShotClock;
 
   Future<File> _favoritesFile() async {
     return AppStorage.instance.file(_favoritesFileName);
@@ -2388,6 +2393,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
     int? timeoutsMin = _clampOrNull(_timeoutRange?.min, timeoutBounds);
     int? timeoutsMax = _clampOrNull(_timeoutRange?.max, timeoutBounds);
     PossessionPreference? possession = _possessionPreference;
+    var hideShotClock = _hideShotClock;
 
     List<int?> foulMinOptions = _buildNumericOptions(foulBounds);
     List<int?> foulMaxOptions = _buildNumericOptions(foulBounds);
@@ -2556,6 +2562,14 @@ class _RangeSelectorState extends State<_RangeSelector> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    CheckboxListTile(
+                      value: hideShotClock,
+                      onChanged: (value) =>
+                          sheetSetState(() => hideShotClock = value ?? false),
+                      title: const Text('Hide Shot Clock'),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         TextButton(
@@ -2579,6 +2593,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
                               timeoutsMin = null;
                               timeoutsMax = null;
                               possession = null;
+                              hideShotClock = false;
                             });
                             foulMinController.jumpToItem(0);
                             foulMaxController.jumpToItem(0);
@@ -2617,6 +2632,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
                                 fouls: foulsRange,
                                 timeouts: timeoutRange,
                                 possession: possession,
+                                hideShotClock: hideShotClock,
                               ),
                             );
                           },
@@ -2639,6 +2655,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
         fouls: result.fouls,
         timeouts: result.timeouts,
         possession: result.possession,
+        hideShotClock: result.hideShotClock,
       );
     }
   }
@@ -2680,11 +2697,13 @@ class _RangeSelectorState extends State<_RangeSelector> {
     IntRange? fouls,
     IntRange? timeouts,
     PossessionPreference? possession,
+    required bool hideShotClock,
   }) {
     setState(() {
       _foulRange = fouls;
       _timeoutRange = timeouts;
       _possessionPreference = possession;
+      _hideShotClock = hideShotClock;
       _selectedFavoriteName = null;
     });
     widget.controller.setCompetition(competition);
@@ -2693,6 +2712,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
     widget.controller.setPossessionPreference(possession);
     widget.onCompetitionChanged?.call(competition);
     widget.onChanged();
+    widget.onHideShotClockChanged(hideShotClock);
   }
 
   void _resetFilters() {
@@ -2707,6 +2727,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
       _timeoutRange = null;
       _possessionPreference = null;
       _selectedFavoriteName = null;
+      _hideShotClock = false;
     });
     widget.controller.resetFilters();
     widget.controller.clearScenario();
@@ -2935,6 +2956,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
       fouls: _foulRange,
       timeouts: _timeoutRange,
       possession: _possessionPreference,
+      hideShotClock: _hideShotClock,
     );
 
     setState(() {
@@ -2967,6 +2989,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
       _foulRange = favorite.fouls;
       _timeoutRange = favorite.timeouts;
       _possessionPreference = favorite.possession;
+      _hideShotClock = favorite.hideShotClock;
       _selectedFavoriteName = favorite.name;
     });
 
@@ -2980,6 +3003,7 @@ class _RangeSelectorState extends State<_RangeSelector> {
     widget.controller.setTimeoutRange(favorite.timeouts);
     widget.controller.setPossessionPreference(favorite.possession);
     widget.onChanged();
+    widget.onHideShotClockChanged(favorite.hideShotClock);
   }
 
   Future<String?> _promptFavoriteName() async {
@@ -3032,12 +3056,14 @@ class _MoreFiltersResult {
   final IntRange? fouls;
   final IntRange? timeouts;
   final PossessionPreference? possession;
+  final bool hideShotClock;
 
   const _MoreFiltersResult({
     required this.competition,
     this.fouls,
     this.timeouts,
     this.possession,
+    required this.hideShotClock,
   });
 }
 
@@ -3093,50 +3119,21 @@ class _FavoritesMenuButton extends StatelessWidget {
       constraints: BoxConstraints(minWidth: resolvedWidth),
       tooltip: isEnabled ? 'Favorites' : null,
       color: theme.colorScheme.surface,
+      onSelected: onSelect,
       itemBuilder: (context) {
         return favorites
             .map(
               (favorite) => PopupMenuItem<_SavedFilter>(
+                value: favorite,
                 padding: EdgeInsets.zero,
-                enabled: false,
                 child: SizedBox(
                   width: resolvedWidth,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            onSelect(favorite);
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 8, horizontal: 12),
-                            child: Text(
-                              favorite.name,
-                              style: textStyle ??
-                                  theme.textTheme.bodySmall
-                                      ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          onDelete(favorite.name);
-                        },
-                        icon: const Icon(
-                          Icons.close,
-                          size: 16,
-                          color: Colors.grey,
-                        ),
-                        padding: const EdgeInsets.all(4),
-                        constraints: const BoxConstraints(),
-                        splashRadius: 18,
-                        tooltip: 'Delete',
-                      ),
-                    ],
+                  child: _FavoriteMenuItemRow(
+                    favorite: favorite,
+                    textStyle: textStyle ??
+                        theme.textTheme.bodySmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                    onDelete: () => onDelete(favorite.name),
                   ),
                 ),
               ),
@@ -3164,6 +3161,62 @@ class _FavoritesMenuButton extends StatelessWidget {
   }
 }
 
+class _FavoriteMenuItemRow extends StatefulWidget {
+  const _FavoriteMenuItemRow({
+    required this.favorite,
+    required this.textStyle,
+    required this.onDelete,
+  });
+
+  final _SavedFilter favorite;
+  final TextStyle? textStyle;
+  final VoidCallback onDelete;
+
+  @override
+  State<_FavoriteMenuItemRow> createState() => _FavoriteMenuItemRowState();
+}
+
+class _FavoriteMenuItemRowState extends State<_FavoriteMenuItemRow> {
+  bool _removed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_removed) {
+      return const SizedBox.shrink();
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            child: Text(
+              widget.favorite.name,
+              style: widget.textStyle,
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: () {
+            widget.onDelete();
+            if (mounted) {
+              setState(() => _removed = true);
+            }
+          },
+          icon: const Icon(
+            Icons.close,
+            size: 16,
+            color: Colors.grey,
+          ),
+          padding: const EdgeInsets.all(4),
+          constraints: const BoxConstraints(),
+          splashRadius: 18,
+          tooltip: 'Delete',
+        ),
+      ],
+    );
+  }
+}
+
 class _SavedFilter {
   final String name;
   final ScoreDiffSelection score;
@@ -3172,6 +3225,7 @@ class _SavedFilter {
   final IntRange? fouls;
   final IntRange? timeouts;
   final PossessionPreference? possession;
+  final bool hideShotClock;
 
   const _SavedFilter({
     required this.name,
@@ -3181,6 +3235,7 @@ class _SavedFilter {
     this.fouls,
     this.timeouts,
     this.possession,
+    this.hideShotClock = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -3211,6 +3266,7 @@ class _SavedFilter {
               'label': timeouts!.label,
             },
       'possession': possession?.name,
+      'hideShotClock': hideShotClock,
     };
   }
 
@@ -3297,6 +3353,8 @@ class _SavedFilter {
       }
     }
 
+    final hideShotClock = json['hideShotClock'] == true;
+
     return _SavedFilter(
       name: name,
       score: score,
@@ -3305,6 +3363,7 @@ class _SavedFilter {
       fouls: fouls,
       timeouts: timeouts,
       possession: possession,
+      hideShotClock: hideShotClock,
     );
   }
 }
