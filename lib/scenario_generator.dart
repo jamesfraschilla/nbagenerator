@@ -826,7 +826,7 @@ class ScenarioController {
     shotClockBlank = shotClockBlank || hideShotClock || shotClockSeconds <= 0;
 
     final bool shortClockBlank =
-        isProCompetition ? gameClockTenths < 240 : gameClockTenths < 300;
+        isProCompetition ? gameClockTenths <= 240 : gameClockTenths <= 300;
     if (shortClockBlank) {
       shotClockBlank = true;
     }

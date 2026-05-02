@@ -64,178 +64,203 @@ class _EditScenarioScreenState extends State<EditScenarioScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Scenario')),
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 640;
+            return Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
                 children: [
-                  Expanded(
-                    child: _numField(
-                      'Home Score',
-                      initial: homeScore,
-                      onSaved: (value) => homeScore = value,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _numField(
-                      'Guest Score',
-                      initial: guestScore,
-                      onSaved: (value) => guestScore = value,
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 900),
+                      child: Column(
+                        children: [
+                          _adaptivePair(
+                            isCompact: isCompact,
+                            first: _numField(
+                              'Home Score',
+                              initial: homeScore,
+                              onSaved: (value) => homeScore = value,
+                            ),
+                            second: _numField(
+                              'Guest Score',
+                              initial: guestScore,
+                              onSaved: (value) => guestScore = value,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _adaptivePair(
+                            isCompact: isCompact,
+                            first: _clockFieldTenths(
+                              label: 'Game Clock',
+                              initialTenths: gameClockTenths,
+                              onSaved: (value) => gameClockTenths =
+                                  value.clamp(0, 1800).toInt(),
+                            ),
+                            second: _dropdown<int>(
+                              label: 'Shot Clock (0-${rules.shotClockMax})',
+                              value: shotClockSeconds,
+                              items: List<int>.generate(
+                                rules.shotClockMax + 1,
+                                (i) => i,
+                              ),
+                              display: (v) => '$v',
+                              onChanged: (value) => setState(() {
+                                shotClockSeconds = value;
+                                hideShotClock = false;
+                                shotClockBlank = value <= 0;
+                              }),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: hideShotClock,
+                                onChanged: (value) => setState(() {
+                                  hideShotClock = value ?? false;
+                                  if (hideShotClock) {
+                                    shotClockBlank = true;
+                                  }
+                                }),
+                              ),
+                              const Text('Hide Shot Clock'),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _adaptivePair(
+                            isCompact: isCompact,
+                            first: _dropdown<Period>(
+                              label: 'Period',
+                              value: period,
+                              items: rules.allowedPeriods,
+                              display: periodLabel,
+                              onChanged: (value) =>
+                                  setState(() => period = value),
+                            ),
+                            second: _dropdown<TeamSide>(
+                              label: 'Possession Start',
+                              value: possession,
+                              items: TeamSide.values,
+                              display: (side) =>
+                                  side == TeamSide.home ? 'Home' : 'Guest',
+                              onChanged: (value) =>
+                                  setState(() => possession = value),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _dropdown<StartType>(
+                            label: 'Start Type',
+                            value: startType,
+                            items: StartType.values,
+                            display: startTypeLabel,
+                            onChanged: (value) =>
+                                setState(() => startType = value),
+                          ),
+                          if (rules.showPossessionArrow) ...[
+                            const SizedBox(height: 12),
+                            _dropdown<TeamSide>(
+                              label: 'Possession Arrow',
+                              value: possessionArrow,
+                              items: TeamSide.values,
+                              display: (side) =>
+                                  side == TeamSide.home ? 'Home' : 'Guest',
+                              onChanged: (value) =>
+                                  setState(() => possessionArrow = value),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          _adaptivePair(
+                            isCompact: isCompact,
+                            first: _dropdown<int>(
+                              label:
+                                  'Home Fouls (${rules.foulMin}-${rules.foulMax})',
+                              value: homeFouls,
+                              items: _intRange(rules.foulMin, rules.foulMax),
+                              display: (v) => '$v',
+                              onChanged: (value) =>
+                                  setState(() => homeFouls = value),
+                            ),
+                            second: _dropdown<int>(
+                              label:
+                                  'Guest Fouls (${rules.foulMin}-${rules.foulMax})',
+                              value: guestFouls,
+                              items: _intRange(rules.foulMin, rules.foulMax),
+                              display: (v) => '$v',
+                              onChanged: (value) =>
+                                  setState(() => guestFouls = value),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _adaptivePair(
+                            isCompact: isCompact,
+                            first: _dropdown<int>(
+                              label:
+                                  'Home TOL (${rules.timeoutMin}-${rules.timeoutMax})',
+                              value: homeTimeouts,
+                              items:
+                                  _intRange(rules.timeoutMin, rules.timeoutMax),
+                              display: (v) => '$v',
+                              onChanged: (value) =>
+                                  setState(() => homeTimeouts = value),
+                            ),
+                            second: _dropdown<int>(
+                              label:
+                                  'Guest TOL (${rules.timeoutMin}-${rules.timeoutMax})',
+                              value: guestTimeouts,
+                              items:
+                                  _intRange(rules.timeoutMin, rules.timeoutMax),
+                              display: (v) => '$v',
+                              onChanged: (value) =>
+                                  setState(() => guestTimeouts = value),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: _save,
+                              icon: const Icon(Icons.save_outlined),
+                              label: const Text('Save'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _clockFieldTenths(
-                      label: 'Game Clock',
-                      initialTenths: gameClockTenths,
-                      onSaved: (value) =>
-                          gameClockTenths = value.clamp(0, 1800).toInt(),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _dropdown<int>(
-                      label: 'Shot Clock (0-${rules.shotClockMax})',
-                      value: shotClockSeconds,
-                      items:
-                          List<int>.generate(rules.shotClockMax + 1, (i) => i),
-                      display: (v) => '$v',
-                      onChanged: (value) => setState(() {
-                        shotClockSeconds = value;
-                        hideShotClock = false;
-                        shotClockBlank = value <= 0;
-                      }),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Checkbox(
-                    value: hideShotClock,
-                    onChanged: (value) => setState(() {
-                      hideShotClock = value ?? false;
-                      if (hideShotClock) {
-                        shotClockBlank = true;
-                      }
-                    }),
-                  ),
-                  const Text('Hide Shot Clock'),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _dropdown<Period>(
-                      label: 'Period',
-                      value: period,
-                      items: rules.allowedPeriods,
-                      display: periodLabel,
-                      onChanged: (value) => setState(() => period = value),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _dropdown<TeamSide>(
-                      label: 'Possession Start',
-                      value: possession,
-                      items: TeamSide.values,
-                      display: (side) =>
-                          side == TeamSide.home ? 'Home' : 'Guest',
-                      onChanged: (value) => setState(() => possession = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _dropdown<StartType>(
-                label: 'Start Type',
-                value: startType,
-                items: StartType.values,
-                display: startTypeLabel,
-                onChanged: (value) => setState(() => startType = value),
-              ),
-              if (rules.showPossessionArrow) ...[
-                const SizedBox(height: 12),
-                _dropdown<TeamSide>(
-                  label: 'Possession Arrow',
-                  value: possessionArrow,
-                  items: TeamSide.values,
-                  display: (side) => side == TeamSide.home ? 'Home' : 'Guest',
-                  onChanged: (value) => setState(() => possessionArrow = value),
-                ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _dropdown<int>(
-                      label: 'Home Fouls (${rules.foulMin}-${rules.foulMax})',
-                      value: homeFouls,
-                      items: _intRange(rules.foulMin, rules.foulMax),
-                      display: (v) => '$v',
-                      onChanged: (value) => setState(() => homeFouls = value),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _dropdown<int>(
-                      label: 'Guest Fouls (${rules.foulMin}-${rules.foulMax})',
-                      value: guestFouls,
-                      items: _intRange(rules.foulMin, rules.foulMax),
-                      display: (v) => '$v',
-                      onChanged: (value) => setState(() => guestFouls = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _dropdown<int>(
-                      label:
-                          'Home TOL (${rules.timeoutMin}-${rules.timeoutMax})',
-                      value: homeTimeouts,
-                      items: _intRange(rules.timeoutMin, rules.timeoutMax),
-                      display: (v) => '$v',
-                      onChanged: (value) =>
-                          setState(() => homeTimeouts = value),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _dropdown<int>(
-                      label:
-                          'Guest TOL (${rules.timeoutMin}-${rules.timeoutMax})',
-                      value: guestTimeouts,
-                      items: _intRange(rules.timeoutMin, rules.timeoutMax),
-                      display: (v) => '$v',
-                      onChanged: (value) =>
-                          setState(() => guestTimeouts = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _save,
-                icon: const Icon(Icons.save_outlined),
-                label: const Text('Save'),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
+    );
+  }
+
+  Widget _adaptivePair({
+    required bool isCompact,
+    required Widget first,
+    required Widget second,
+  }) {
+    if (isCompact) {
+      return Column(
+        children: [
+          first,
+          const SizedBox(height: 12),
+          second,
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(child: first),
+        const SizedBox(width: 12),
+        Expanded(child: second),
+      ],
     );
   }
 

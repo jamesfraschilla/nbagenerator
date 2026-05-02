@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_lints: ^3.0.0
@@ -24,5 +25,8 @@ flutter:
     - family: TimesSquare
       fonts:
         - asset: assets/fonts/TimesSquare.ttf
+    - family: DIN
+      fonts:
+        - asset: assets/fonts/DIN.ttf
   assets:
     - assets/clock_bg_transparent_minimal.png

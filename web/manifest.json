@@ -1,12 +1,12 @@
 {
-    "name": "nba_scenario_generator",
-    "short_name": "nba_scenario_generator",
+    "name": "Clutch Time",
+    "short_name": "Clutch Time",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#152139",
+    "theme_color": "#152139",
+    "description": "Responsive late-game basketball scenario generator.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

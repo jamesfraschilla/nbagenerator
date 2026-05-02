@@ -45,5 +45,9 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Clutch Time needs access to save exported scoreboards to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Allow Clutch Time to save exported scoreboards to your camera roll.</string>
 </dict>
 </plist>

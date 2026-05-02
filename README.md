@@ -1,16 +1,50 @@
-# nba_scenario_generator
+# Clutch Time
 
-A new Flutter project.
+Clutch Time is a Flutter scenario generator for late-game basketball situations. The app now targets responsive web layouts as a first-class surface, while still working well on iPhone, iPad, and larger desktop displays.
 
-## Getting Started
+## Local development
 
-This project is a starting point for a Flutter application.
+Run the app locally with:
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter run -d chrome
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+For one-command local static preview:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+make preview
+```
+
+Then open `http://localhost:8001`.
+
+For a one-command GitHub Pages-style preview:
+
+```bash
+make preview-gh-pages
+```
+
+Then open `http://localhost:8001/nbagenerator/`.
+
+To use a different port:
+
+```bash
+make preview PORT=8002
+make preview-gh-pages PORT=8002
+```
+
+## GitHub Pages
+
+This repository includes a GitHub Actions workflow that builds the Flutter web app and deploys `build/web` to GitHub Pages.
+
+Required repository settings:
+
+1. In GitHub, open `Settings` -> `Pages`.
+2. Set `Source` to `GitHub Actions`.
+3. Push to `main` or run the workflow manually.
+
+The workflow automatically sets the Flutter web `base-href` to `/<repo-name>/`, which is the path GitHub Pages uses for project sites.
+
+For this repository specifically, the published URL will be:
+
+`https://jamesfraschilla.github.io/nbagenerator/`
