@@ -633,9 +633,8 @@ SmartStrategyRecommendation evaluateSmartStrategy({
     return SmartStrategyRecommendation(
       status: 'ready',
       perspectiveLabel: '$teamLabel perspective',
-      headline: 'FT line branches',
-      summary:
-          'Plan for all three FT outcomes, then transition to the next possession state.',
+      headline: 'After FT',
+      summary: '',
       stateLine: _stateLine(
         scenario: scenario,
         teamLabel: teamLabel,

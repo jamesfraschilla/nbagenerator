@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'dart:ui' as ui
     show Codec, Image, ImageByteFormat, instantiateImageCodec;
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -937,11 +939,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        recommendation.summary,
-                        style: theme.textTheme.titleMedium,
-                      ),
+                      if (recommendation.summary.trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          recommendation.summary,
+                          style: theme.textTheme.titleMedium,
+                        ),
+                      ],
                     ] else ...[
                       for (final note in recommendation.notes) ...[
                         Text(
@@ -1417,6 +1421,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_isAnimating) return;
 
     final generated = controller.generateScenario();
+    final animationStart = DateTime.now();
+    final isIosWeb = kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
     final completer = Completer<void>();
     _animationCompleter = completer;
@@ -1428,7 +1434,20 @@ class _HomeScreenState extends State<HomeScreen> {
       _animationRun++;
     });
 
-    await completer.future;
+    await Future.any<void>([
+      completer.future,
+      Future<void>.delayed(
+        isIosWeb
+            ? const Duration(milliseconds: 1800)
+            : const Duration(milliseconds: 1400),
+      ),
+    ]);
+    final elapsed = DateTime.now().difference(animationStart);
+    final minimumVisibleDuration =
+        isIosWeb ? const Duration(milliseconds: 1050) : Duration.zero;
+    if (elapsed < minimumVisibleDuration) {
+      await Future<void>.delayed(minimumVisibleDuration - elapsed);
+    }
     if (!context.mounted) return;
 
     final autoHide = generated.hideShotClock;
