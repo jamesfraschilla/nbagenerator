@@ -100,9 +100,9 @@ const Map<String, Map<String, String>> _offenseMatrix = {
     '-2': 'NEED 2 / BUT PREFER / 3',
     '-1': 'NEED 2',
     '0': 'HOLD BALL FOR LAST / SHOT',
-    '1': 'HOLD BALL FOR LAST / SHOT',
-    '2': 'HOLD BALL FOR LAST / SHOT',
-    '3': 'HOLD BALL FOR LAST / SHOT',
+    '1': 'BALL SECURITY & PREPARE FOR FOUL',
+    '2': 'BALL SECURITY & PREPARE FOR FOUL',
+    '3': 'BALL SECURITY & PREPARE FOR FOUL',
   },
   '0:20-0:15.1': {
     '-4': 'QUICK 2 / OR / GOOD 3',
@@ -110,9 +110,9 @@ const Map<String, Map<String, String>> _offenseMatrix = {
     '-2': 'NEED 2 / BUT PREFER / 3',
     '-1': 'NEED 2',
     '0': 'HOLD BALL FOR LAST / SHOT',
-    '1': 'HOLD BALL FOR LAST / SHOT',
-    '2': 'HOLD BALL FOR LAST / SHOT',
-    '3': 'HOLD BALL FOR LAST / SHOT',
+    '1': 'BALL SECURITY & PREPARE FOR FOUL',
+    '2': 'BALL SECURITY & PREPARE FOR FOUL',
+    '3': 'BALL SECURITY & PREPARE FOR FOUL',
   },
   '0:15-0:10.1': {
     '-4': 'QUICK 2 / OR / GOOD 3',
@@ -120,9 +120,9 @@ const Map<String, Map<String, String>> _offenseMatrix = {
     '-2': 'NEED 2 / BUT PREFER / 3',
     '-1': 'NEED 2',
     '0': 'HOLD BALL FOR LAST / SHOT',
-    '1': 'HOLD BALL FOR LAST / SHOT',
-    '2': 'HOLD BALL FOR LAST / SHOT',
-    '3': 'HOLD BALL FOR LAST / SHOT',
+    '1': 'BALL SECURITY & PREPARE FOR FOUL',
+    '2': 'BALL SECURITY & PREPARE FOR FOUL',
+    '3': 'BALL SECURITY & PREPARE FOR FOUL',
   },
   '0:10-0:08.1': {
     '-4': 'NEED 3 /  / *CRASH 5*',
@@ -130,9 +130,9 @@ const Map<String, Map<String, String>> _offenseMatrix = {
     '-2': 'NEED 2 / BUT PREFER / 3',
     '-1': 'NEED 2',
     '0': 'HOLD BALL FOR LAST / SHOT',
-    '1': 'HOLD BALL FOR LAST / SHOT',
-    '2': 'HOLD BALL FOR LAST / SHOT',
-    '3': 'HOLD BALL FOR LAST / SHOT',
+    '1': 'BALL SECURITY & PREPARE FOR FOUL',
+    '2': 'BALL SECURITY & PREPARE FOR FOUL',
+    '3': 'BALL SECURITY & PREPARE FOR FOUL',
   },
   '0:08-0:07.1': {
     '-4': 'NEED 3 /  / *CRASH 5*',
@@ -140,9 +140,9 @@ const Map<String, Map<String, String>> _offenseMatrix = {
     '-2': 'NEED 2 / BUT PREFER / 3',
     '-1': 'NEED 2',
     '0': 'HOLD BALL FOR LAST / SHOT',
-    '1': 'HOLD BALL FOR LAST / SHOT',
-    '2': 'HOLD BALL FOR LAST / SHOT',
-    '3': 'HOLD BALL FOR LAST / SHOT',
+    '1': 'BALL SECURITY & PREPARE FOR FOUL',
+    '2': 'BALL SECURITY & PREPARE FOR FOUL',
+    '3': 'BALL SECURITY & PREPARE FOR FOUL',
   },
   '0:07-0:06.1': {
     '-4': 'NEED 3 /  / *CRASH 5*',
@@ -150,9 +150,9 @@ const Map<String, Map<String, String>> _offenseMatrix = {
     '-2': 'NEED 2 / BUT PREFER / 3',
     '-1': 'NEED 2',
     '0': 'HOLD BALL FOR LAST / SHOT',
-    '1': 'HOLD BALL FOR LAST / SHOT',
-    '2': 'HOLD BALL FOR LAST / SHOT',
-    '3': 'HOLD BALL FOR LAST / SHOT',
+    '1': 'BALL SECURITY & PREPARE FOR FOUL',
+    '2': 'BALL SECURITY & PREPARE FOR FOUL',
+    '3': 'BALL SECURITY & PREPARE FOR FOUL',
   },
   '0:06-0:05.1': {
     '-4': 'NEED 3 /  / *CRASH 5*',
@@ -160,9 +160,9 @@ const Map<String, Map<String, String>> _offenseMatrix = {
     '-2': 'NEED 2 / BUT PREFER / 3',
     '-1': 'NEED 2',
     '0': 'HOLD BALL FOR LAST / SHOT',
-    '1': 'HOLD BALL FOR LAST / SHOT',
-    '2': 'HOLD BALL FOR LAST / SHOT',
-    '3': 'HOLD BALL FOR LAST / SHOT',
+    '1': 'BALL SECURITY & PREPARE FOR FOUL',
+    '2': 'BALL SECURITY & PREPARE FOR FOUL',
+    '3': 'BALL SECURITY & PREPARE FOR FOUL',
   },
   '0:05-0:04.1': {
     '-4': 'NEED 3 /  / *CRASH 5*',
@@ -170,9 +170,9 @@ const Map<String, Map<String, String>> _offenseMatrix = {
     '-2': 'NEED 2 / BUT PREFER / 3',
     '-1': 'NEED 2',
     '0': 'HOLD BALL FOR LAST / SHOT',
-    '1': 'HOLD BALL FOR LAST / SHOT',
-    '2': 'HOLD BALL FOR LAST / SHOT',
-    '3': 'HOLD BALL FOR LAST / SHOT',
+    '1': 'BALL SECURITY & PREPARE FOR FOUL',
+    '2': 'BALL SECURITY & PREPARE FOR FOUL',
+    '3': 'BALL SECURITY & PREPARE FOR FOUL',
   },
   '0:04-0:03.1': {
     '-4': 'NEED 3 /  / *CRASH 5*',
@@ -180,9 +180,9 @@ const Map<String, Map<String, String>> _offenseMatrix = {
     '-2': 'LOB OR CATCH AND / SHOOT',
     '-1': 'LOB OR CATCH AND / SHOOT',
     '0': 'HOLD BALL FOR LAST / SHOT',
-    '1': 'HOLD BALL FOR LAST / SHOT',
-    '2': 'HOLD BALL FOR LAST / SHOT',
-    '3': 'HOLD BALL FOR LAST / SHOT',
+    '1': 'BALL SECURITY & PREPARE FOR FOUL',
+    '2': 'BALL SECURITY & PREPARE FOR FOUL',
+    '3': 'BALL SECURITY & PREPARE FOR FOUL',
   },
   '0:03-0:02.1': {
     '-4': 'NEED 3 /  / *CRASH 5*',
@@ -190,9 +190,9 @@ const Map<String, Map<String, String>> _offenseMatrix = {
     '-2': 'LOB OR CATCH AND / SHOOT',
     '-1': 'LOB OR CATCH AND / SHOOT',
     '0': 'HOLD BALL FOR LAST / SHOT',
-    '1': 'HOLD BALL FOR LAST / SHOT',
-    '2': 'HOLD BALL FOR LAST / SHOT',
-    '3': 'HOLD BALL FOR LAST / SHOT',
+    '1': 'BALL SECURITY & PREPARE FOR FOUL',
+    '2': 'BALL SECURITY & PREPARE FOR FOUL',
+    '3': 'BALL SECURITY & PREPARE FOR FOUL',
   },
   '0:02-0:01.1': {
     '-4': 'DRAW FOUL',
@@ -214,6 +214,259 @@ const Map<String, Map<String, String>> _offenseMatrix = {
     '2': 'SAFE INBOUNDS',
     '3': 'SAFE INBOUNDS',
   },
+  '0:00.4-0:00.1': {
+    '-4': 'DRAW FOUL',
+    '-3': 'DRAW FOUL',
+    '-2': 'LOB / TIP',
+    '-1': 'LOB / TIP',
+    '0': 'LOB / TIP',
+    '1': 'SAFE INBOUNDS',
+    '2': 'SAFE INBOUNDS',
+    '3': 'SAFE INBOUNDS',
+  },
+};
+
+const Map<String, Map<String, String>> _defenseMatrix = {
+  '1:00-0:52.1': {
+    '-5': 'DEFEND NORMALLY',
+    '-4': 'DEFEND NORMALLY',
+    '-3': 'DEFEND NORMALLY',
+    '-2': 'DEFEND NORMALLY',
+    '-1': 'DEFEND NORMALLY',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'DEFEND NORMALLY',
+    '4+': 'DEFEND NORMALLY',
+  },
+  '0:52-0:40.1': {
+    '-5': '1 TRAP, THEN FOUL',
+    '-4': 'DEFEND NORMALLY',
+    '-3': 'DEFEND NORMALLY',
+    '-2': 'DEFEND NORMALLY',
+    '-1': 'DEFEND NORMALLY',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'DEFEND NORMALLY',
+    '4+': 'DEFEND NORMALLY',
+  },
+  '0:40-0:35.1': {
+    '-5': '1 TRAP, THEN FOUL',
+    '-4': 'DEFEND NORMALLY',
+    '-3': 'DEFEND NORMALLY',
+    '-2': 'DEFEND NORMALLY',
+    '-1': 'DEFEND NORMALLY',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'DEFEND NORMALLY',
+    '4+': 'DEFEND NORMALLY',
+  },
+  '0:35-0:30.1': {
+    '-5': '1 TRAP, THEN FOUL',
+    '-4': '1 TRAP, THEN FOUL',
+    '-3': 'DEFEND NORMALLY',
+    '-2': 'DEFEND NORMALLY',
+    '-1': 'DEFEND NORMALLY',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'NO 3 / DEFENSE',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:30-0:28.1': {
+    '-5': 'FOUL',
+    '-4': '1 TRAP, THEN FOUL',
+    '-3': '1 TRAP, THEN FOUL',
+    '-2': '1 TRAP, THEN FOUL',
+    '-1': '1 TRAP, THEN FOUL',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'NO 3 / DEFENSE',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:28-0:26.1': {
+    '-5': 'FOUL',
+    '-4': '1 TRAP, THEN FOUL',
+    '-3': '1 TRAP, THEN FOUL',
+    '-2': '1 TRAP, THEN FOUL',
+    '-1': '1 TRAP, THEN FOUL',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'NO 3 / DEFENSE',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:26-0:24.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': '1 TRAP, THEN FOUL',
+    '-2': '1 TRAP, THEN FOUL',
+    '-1': '1 TRAP, THEN FOUL',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'NO 3 / DEFENSE',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:24-0:20.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': '1 TRAP, THEN FOUL',
+    '-2': '1 TRAP, THEN FOUL',
+    '-1': '1 TRAP, THEN FOUL',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'NO 3 / DEFENSE',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:20-0:15.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': '1 TRAP, THEN FOUL',
+    '-2': '1 TRAP, THEN FOUL',
+    '-1': '1 TRAP, THEN FOUL',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'NO 3 / DEFENSE',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:15-0:10.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': 'FOUL',
+    '-2': 'FOUL',
+    '-1': 'FOUL',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'NO 3 / DEFENSE',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:10-0:08.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': 'FOUL',
+    '-2': 'FOUL',
+    '-1': 'FOUL',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'FOUL',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:08-0:07.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': 'FOUL',
+    '-2': 'FOUL',
+    '-1': 'FOUL',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'FOUL',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:07-0:06.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': 'FOUL',
+    '-2': 'FOUL',
+    '-1': 'FOUL',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'FOUL',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:06-0:05.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': 'FOUL',
+    '-2': 'FOUL',
+    '-1': 'FOUL',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'FOUL',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:05-0:04.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': 'FOUL',
+    '-2': 'FOUL',
+    '-1': 'FOUL',
+    '0': 'DEFEND NORMALLY',
+    '1': 'DEFEND NORMALLY',
+    '2': 'DEFEND NORMALLY',
+    '3': 'FOUL',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:04-0:03.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': 'FOUL',
+    '-2': 'FOUL',
+    '-1': 'FOUL',
+    '0': 'NO CATCH & SHOOT',
+    '1': 'NO CATCH & SHOOT',
+    '2': 'NO CATCH & SHOOT',
+    '3': 'FOUL',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:03-0:02.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': 'FOUL',
+    '-2': 'FOUL',
+    '-1': 'FOUL',
+    '0': 'NO CATCH & SHOOT',
+    '1': 'NO CATCH & SHOOT',
+    '2': 'NO CATCH & SHOOT',
+    '3': 'NO 3 / DEFENSE',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:02-0:01.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': 'FOUL',
+    '-2': 'FOUL',
+    '-1': 'FOUL',
+    '0': 'NO CATCH & SHOOT',
+    '1': 'NO CATCH & SHOOT',
+    '2': 'NO CATCH & SHOOT',
+    '3': 'NO 3 / DEFENSE',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:01-0:00.5': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': 'FOUL',
+    '-2': 'FOUL',
+    '-1': 'FOUL',
+    '0': 'NO FOULS. / ZONE THE RIM',
+    '1': 'NO FOULS. / ZONE THE RIM',
+    '2': 'NO FOULS. / ZONE THE RIM',
+    '3': 'NO 3 / DEFENSE',
+    '4+': 'NO 3 / DEFENSE',
+  },
+  '0:00.4-0:00.1': {
+    '-5': 'FOUL',
+    '-4': 'FOUL',
+    '-3': 'FOUL',
+    '-2': 'FOUL',
+    '-1': 'FOUL',
+    '0': 'NO FOULS. / ZONE THE RIM',
+    '1': 'NO FOULS. / ZONE THE RIM',
+    '2': 'NO FOULS. / ZONE THE RIM',
+    '3': 'NO FOULS',
+    '4+': 'NO FOULS',
+  },
 };
 
 SmartStrategyRecommendation evaluateSmartStrategy({
@@ -221,6 +474,7 @@ SmartStrategyRecommendation evaluateSmartStrategy({
   required Competition competition,
   required String homeTeamName,
   required String guestTeamName,
+  required TeamSide vantageSide,
 }) {
   if (competition != Competition.nba) {
     return SmartStrategyRecommendation(
@@ -231,9 +485,10 @@ SmartStrategyRecommendation evaluateSmartStrategy({
           'This recommendation tool is currently tuned only for NBA late-game rules.',
       stateLine: _stateLine(
         scenario: scenario,
-        teamLabel:
-            scenario.possession == TeamSide.home ? homeTeamName : guestTeamName,
-        scoreDiff: _scoreDiffFromPossession(scenario),
+        teamLabel: _teamLabelForSide(vantageSide, homeTeamName, guestTeamName),
+        scoreDiff: _scoreDiffFromVantage(scenario, vantageSide),
+        homeTeamName: homeTeamName,
+        guestTeamName: guestTeamName,
       ),
     );
   }
@@ -242,31 +497,45 @@ SmartStrategyRecommendation evaluateSmartStrategy({
     return SmartStrategyRecommendation(
       status: 'inactive',
       perspectiveLabel:
-          _possessionTeamLabel(scenario, homeTeamName, guestTeamName),
+          '${_teamLabelForSide(vantageSide, homeTeamName, guestTeamName)} perspective',
       headline: 'Smart Strategy inactive',
       summary: 'The late-game rules only apply in Q4 and overtime.',
       stateLine: _stateLine(
         scenario: scenario,
-        teamLabel: _possessionTeamLabel(scenario, homeTeamName, guestTeamName),
-        scoreDiff: _scoreDiffFromPossession(scenario),
+        teamLabel: _teamLabelForSide(vantageSide, homeTeamName, guestTeamName),
+        scoreDiff: _scoreDiffFromVantage(scenario, vantageSide),
+        homeTeamName: homeTeamName,
+        guestTeamName: guestTeamName,
       ),
     );
   }
 
   final secondsRemaining = scenario.gameClockTenths / 10.0;
-  final scoreDiff = _scoreDiffFromPossession(scenario);
-  final teamLabel = _possessionTeamLabel(scenario, homeTeamName, guestTeamName);
+  final scoreDiff = _scoreDiffFromVantage(scenario, vantageSide);
+  final teamLabel = _teamLabelForSide(vantageSide, homeTeamName, guestTeamName);
+  final isOurPossession = scenario.possession == vantageSide;
+  final ourTimeouts = vantageSide == TeamSide.home
+      ? scenario.homeTimeouts
+      : scenario.guestTimeouts;
+  final opponentTimeouts = vantageSide == TeamSide.home
+      ? scenario.guestTimeouts
+      : scenario.homeTimeouts;
+  final ourFouls =
+      vantageSide == TeamSide.home ? scenario.homeFouls : scenario.guestFouls;
+  final foulsToGive = (4 - ourFouls).clamp(0, 4);
 
   if (secondsRemaining > 360) {
     return SmartStrategyRecommendation(
       status: 'inactive',
-      perspectiveLabel: teamLabel,
+      perspectiveLabel: '$teamLabel perspective',
       headline: 'Smart Strategy inactive',
       summary: 'The workbook-based late-game rules begin in the final 6:00.',
       stateLine: _stateLine(
         scenario: scenario,
         teamLabel: teamLabel,
         scoreDiff: scoreDiff,
+        homeTeamName: homeTeamName,
+        guestTeamName: guestTeamName,
       ),
     );
   }
@@ -275,7 +544,7 @@ SmartStrategyRecommendation evaluateSmartStrategy({
   if (secondsRemaining > 60) {
     return SmartStrategyRecommendation(
       status: playMode == null ? 'monitor' : 'play-mode',
-      perspectiveLabel: '$teamLabel possession',
+      perspectiveLabel: '$teamLabel perspective',
       headline: playMode?.mode ?? 'Play Mode watch',
       summary: playMode?.instruction ??
           'No special workbook instruction in this exact play-mode state.',
@@ -283,6 +552,8 @@ SmartStrategyRecommendation evaluateSmartStrategy({
         scenario: scenario,
         teamLabel: teamLabel,
         scoreDiff: scoreDiff,
+        homeTeamName: homeTeamName,
+        guestTeamName: guestTeamName,
       ),
       rationale:
           'Play Mode is driven by the final 6:00 table from the workbook.',
@@ -293,43 +564,50 @@ SmartStrategyRecommendation evaluateSmartStrategy({
   }
 
   final band = _workbookTimeBand(secondsRemaining);
-  final bucket = _offenseScoreBucket(scoreDiff);
-  final rawInstruction = _offenseMatrix[band]?[bucket];
+  final bucket = isOurPossession
+      ? _offenseScoreBucket(scoreDiff)
+      : _defenseScoreBucket(scoreDiff);
+  final bandMatrix =
+      isOurPossession ? _offenseMatrix[band] : _defenseMatrix[band];
+  final rawInstruction = bandMatrix == null ? null : bandMatrix[bucket];
   if (rawInstruction == null) {
     return SmartStrategyRecommendation(
       status: 'unavailable',
-      perspectiveLabel: '$teamLabel possession',
+      perspectiveLabel: '$teamLabel perspective',
       headline: 'Smart Strategy unavailable',
       summary: 'No workbook instruction matched this exact scoreboard state.',
       stateLine: _stateLine(
         scenario: scenario,
         teamLabel: teamLabel,
         scoreDiff: scoreDiff,
+        homeTeamName: homeTeamName,
+        guestTeamName: guestTeamName,
       ),
     );
   }
 
   final mapped = _mapInstruction(
     rawInstruction,
-    ourTimeouts: scenario.possession == TeamSide.home
-        ? scenario.homeTimeouts
-        : scenario.guestTimeouts,
-    opponentTimeouts: scenario.possession == TeamSide.home
-        ? scenario.guestTimeouts
-        : scenario.homeTimeouts,
+    ourTimeouts: ourTimeouts,
+    opponentTimeouts: opponentTimeouts,
+    foulsToGive: foulsToGive,
   );
 
   return SmartStrategyRecommendation(
     status: 'ready',
-    perspectiveLabel: '$teamLabel possession',
+    perspectiveLabel: '$teamLabel perspective',
     headline: mapped.$1,
     summary: mapped.$2,
     stateLine: _stateLine(
       scenario: scenario,
       teamLabel: teamLabel,
       scoreDiff: scoreDiff,
+      homeTeamName: homeTeamName,
+      guestTeamName: guestTeamName,
     ),
-    rationale: 'Direct workbook lookup from the late-game offense matrix.',
+    rationale: isOurPossession
+        ? 'Direct workbook lookup from the late-game offense matrix.'
+        : 'Direct workbook lookup from the late-game defense matrix.',
     notes: mapped.$3,
   );
 }
@@ -393,7 +671,9 @@ String _workbookTimeBand(double secondsRemaining) {
   if (secondsRemaining > 4) return '0:05-0:04.1';
   if (secondsRemaining > 3) return '0:04-0:03.1';
   if (secondsRemaining > 2) return '0:03-0:02.1';
-  return '0:02-0:01.1';
+  if (secondsRemaining > 1) return '0:02-0:01.1';
+  if (secondsRemaining > 0.4) return '0:01-0:00.5';
+  return '0:00.4-0:00.1';
 }
 
 String _offenseScoreBucket(int scoreDiff) {
@@ -402,42 +682,60 @@ String _offenseScoreBucket(int scoreDiff) {
   return '$scoreDiff';
 }
 
-int _scoreDiffFromPossession(Scenario scenario) {
-  if (scenario.possession == TeamSide.home) {
+String _defenseScoreBucket(int scoreDiff) {
+  if (scoreDiff <= -5) return '-5';
+  if (scoreDiff >= 4) return '4+';
+  return '$scoreDiff';
+}
+
+int _scoreDiffFromVantage(Scenario scenario, TeamSide vantageSide) {
+  if (vantageSide == TeamSide.home) {
     return scenario.homeScore - scenario.guestScore;
   }
   return scenario.guestScore - scenario.homeScore;
 }
 
-String _possessionTeamLabel(
-  Scenario scenario,
+String _teamLabelForSide(
+  TeamSide side,
   String homeTeamName,
   String guestTeamName,
 ) {
-  return scenario.possession == TeamSide.home ? homeTeamName : guestTeamName;
+  return side == TeamSide.home ? homeTeamName : guestTeamName;
 }
 
 String _stateLine({
   required Scenario scenario,
   required String teamLabel,
   required int scoreDiff,
+  required String homeTeamName,
+  required String guestTeamName,
 }) {
   final margin = scoreDiff > 0 ? '+$scoreDiff' : '$scoreDiff';
   final clock = formatGameClockTenths(scenario.gameClockTenths);
   final period = periodLabel(scenario.period);
   final periodText = scenario.period == Period.ot ? 'OT' : 'Q$period';
-  return '$teamLabel possession · $periodText $clock · margin $margin';
+  final possessionLabel = scenario.possession == TeamSide.home
+      ? '$homeTeamName ball'
+      : '$guestTeamName ball';
+  return '$teamLabel perspective · $periodText $clock · margin $margin · $possessionLabel';
 }
 
 (String, String, List<String>) _mapInstruction(
   String rawInstruction, {
   required int ourTimeouts,
   required int opponentTimeouts,
+  required int foulsToGive,
 }) {
   final normalized = rawInstruction.replaceAll('\n', ' ').trim();
   switch (normalized) {
     case 'NORMAL OFFENSE':
       return ('Normal offense', 'Run normal late-game offense.', const []);
+    case 'DEFEND NORMALLY':
+      return (
+        'Defend normally',
+        'Stay home and finish the possession.',
+        const []
+      );
     case '2 FOR 1':
       return ('2 For 1', 'Push for the extra possession.', const []);
     case '2 FOR 1 / (GOOD SHOT ONLY)':
@@ -485,6 +783,12 @@ String _stateLine({
         'Use clock to control the final possession.',
         const []
       );
+    case 'BALL SECURITY & PREPARE FOR FOUL':
+      return (
+        'Ball security',
+        'Secure the possession and prepare for the foul game.',
+        const []
+      );
     case 'NEED 3 /  / *CRASH 5*':
       return ('Need 3', 'Crash 5.', const []);
     case 'LOB OR CATCH AND / SHOOT':
@@ -498,6 +802,38 @@ String _stateLine({
         'Safe inbounds',
         'Value possession over advancement risk.',
         const []
+      );
+    case '1 TRAP, THEN FOUL':
+      return (
+        '1 trap, then foul',
+        'Pressure first, then foul if no turnover.',
+        <String>['Fouls to give: $foulsToGive.'],
+      );
+    case 'FOUL':
+      return (
+        'Foul',
+        'Stop the clock immediately.',
+        <String>['Fouls to give: $foulsToGive.'],
+      );
+    case 'NO 3 / DEFENSE':
+      return ('No 3 defense', 'Take away the arc first.', const []);
+    case 'NO CATCH & SHOOT':
+      return (
+        'No catch & shoot',
+        'Take away the clean perimeter catch.',
+        const []
+      );
+    case 'NO FOULS. / ZONE THE RIM':
+      return (
+        'No fouls, zone the rim',
+        'Protect the rim without bailing them out.',
+        <String>['Fouls to give: $foulsToGive.'],
+      );
+    case 'NO FOULS':
+      return (
+        'No fouls',
+        'Finish the possession without sending them to the line.',
+        <String>['Fouls to give: $foulsToGive.'],
       );
     default:
       return (normalized, 'Follow the workbook cell literally.', const []);

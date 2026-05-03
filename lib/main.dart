@@ -706,6 +706,9 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context, {
     required bool has,
   }) {
+    final smartStrategyEnabled = has &&
+        !_isAnimating &&
+        controller.settings.competition == Competition.nba;
     final exportIcon = _exportingImage
         ? SizedBox(
             width: 20,
@@ -735,7 +738,7 @@ class _HomeScreenState extends State<HomeScreen> {
           KeyedSubtree(
             key: _smartStrategyButtonKey,
             child: FilledButton.icon(
-              onPressed: has && !_isAnimating ? _openSmartStrategy : null,
+              onPressed: smartStrategyEnabled ? _openSmartStrategy : null,
               icon: const Icon(Icons.psychology_alt_outlined),
               label: const Text('Smart Strategy'),
             ),
@@ -903,13 +906,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _openSmartStrategy() async {
     if (!controller.hasScenario) return;
-
-    final recommendation = evaluateSmartStrategy(
-      scenario: controller.scenario,
-      competition: controller.settings.competition,
-      homeTeamName: controller.homeTeamName,
-      guestTeamName: controller.guestTeamName,
-    );
+    if (controller.settings.competition != Competition.nba) return;
+    var selectedVantage = controller.scenario.possession;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -917,92 +915,137 @@ class _HomeScreenState extends State<HomeScreen> {
       showDragHandle: true,
       builder: (context) {
         final theme = Theme.of(context);
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final recommendation = evaluateSmartStrategy(
+              scenario: controller.scenario,
+              competition: controller.settings.competition,
+              homeTeamName: controller.homeTeamName,
+              guestTeamName: controller.guestTeamName,
+              vantageSide: selectedVantage,
+            );
+
+            Widget vantageButton(TeamSide side, String label) {
+              final isSelected = selectedVantage == side;
+              return Expanded(
+                child: FilledButton(
+                  onPressed: () => setModalState(() => selectedVantage = side),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.surfaceContainerHighest,
+                    foregroundColor: isSelected
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.onSurface,
+                  ),
+                  child: Text(label),
+                ),
+              );
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Smart Strategy',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Smart Strategy',
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                recommendation.perspectiveLabel,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            recommendation.perspectiveLabel,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ],
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Vantage',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        vantageButton(TeamSide.home, controller.homeTeamName),
+                        const SizedBox(width: 10),
+                        vantageButton(TeamSide.guest, controller.guestTeamName),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  recommendation.headline,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  recommendation.summary,
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    recommendation.stateLine,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(height: 16),
+                    Text(
+                      recommendation.headline,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                ),
-                if (recommendation.rationale != null) ...[
-                  const SizedBox(height: 14),
-                  Text(
-                    'Why: ${recommendation.rationale!}',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ],
-                if (recommendation.notes.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  for (final note in recommendation.notes)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
+                    const SizedBox(height: 8),
+                    Text(
+                      recommendation.summary,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Text(
-                        '• $note',
+                        recommendation.stateLine,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (recommendation.rationale != null) ...[
+                      const SizedBox(height: 14),
+                      Text(
+                        'Why: ${recommendation.rationale!}',
                         style: theme.textTheme.bodyMedium,
                       ),
-                    ),
-                ],
-              ],
-            ),
-          ),
+                    ],
+                    if (recommendation.notes.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      for (final note in recommendation.notes)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text(
+                            '• $note',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
