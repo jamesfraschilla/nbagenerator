@@ -562,13 +562,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       horizontal: 12.0, vertical: 6.0),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final scoreboardAspectRatio = constraints.maxWidth < 520
-                          ? 1.0
-                          : constraints.maxWidth < 760
-                              ? 1.05
-                              : 1.1;
                       return AspectRatio(
-                        aspectRatio: scoreboardAspectRatio,
+                        aspectRatio: _scoreboardAspectRatio,
                         child: _Scoreboard(
                           controller: controller,
                           onEditTeamName: _editTeamName,
@@ -4092,6 +4087,9 @@ class _ClockBoxStyle {
   });
 }
 
+const double _scoreboardDesignWidth = 680;
+const double _scoreboardAspectRatio = 1.0;
+
 class _BoxedClockTight extends StatelessWidget {
   final String text;
   final TextStyle? textStyle;
@@ -4196,23 +4194,24 @@ class _Scoreboard extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < 520;
-        final horizontalPadding = compact ? 10.0 : 18.0;
-        final verticalPadding = compact ? 12.0 : 20.0;
-        final middleSpacing = compact ? 8.0 : 16.0;
+        final scale =
+            (constraints.maxWidth / _scoreboardDesignWidth).clamp(0.82, 1.0);
+        final horizontalPadding = 14.0 * scale;
+        final verticalPadding = 18.0 * scale;
+        final middleSpacing = 12.0 * scale;
         final gameClockStyle = _ClockBoxStyle(
-          width: compact ? 136 : 164,
-          height: compact ? 44 : 54,
+          width: 164 * scale,
+          height: 54 * scale,
           borderRadius: 0,
           backgroundColor: insetColor,
           textColorOverride: Colors.white,
-          horizontalPadding: compact ? 8 : 12,
+          horizontalPadding: 12 * scale,
         );
 
         final scoreboardBody = Container(
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(compact ? 20 : 24),
+            borderRadius: BorderRadius.circular(24 * scale),
             border: Border.all(color: borderColor, width: 3),
             boxShadow: [
               BoxShadow(
@@ -4226,7 +4225,7 @@ class _Scoreboard extends StatelessWidget {
             left: horizontalPadding,
             right: horizontalPadding,
             top: verticalPadding,
-            bottom: compact ? 2.0 : 4.0,
+            bottom: 4.0 * scale,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -4242,12 +4241,12 @@ class _Scoreboard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     fontFamily: 'TimesSquare',
                     fontSize: (theme.textTheme.displayMedium?.fontSize ?? 40) +
-                        (compact ? -2 : 0),
+                        (2 * scale),
                   ),
                   styleOverrides: gameClockStyle,
                 ),
               ),
-              SizedBox(height: compact ? 8 : 10),
+              SizedBox(height: 10 * scale),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -4264,7 +4263,7 @@ class _Scoreboard extends StatelessWidget {
                             has && s.possessionArrow == TeamSide.home,
                         panelColor: insetColor,
                         borderColor: borderColor,
-                        compact: compact,
+                        scale: scale,
                         onEditName: onEditTeamName == null
                             ? null
                             : () => onEditTeamName!(TeamSide.home),
@@ -4281,14 +4280,14 @@ class _Scoreboard extends StatelessWidget {
                     ),
                     SizedBox(width: middleSpacing / 3),
                     Flexible(
-                      flex: compact ? 1 : 2,
+                      flex: 2,
                       child: _CenterPanel(
                         periodText: periodText,
                         shotClockText: shotClockText,
                         dimShotClock: shotClockHidden,
                         backgroundColor: insetColor,
                         borderColor: borderColor,
-                        compact: compact,
+                        scale: scale,
                         onEditShotClock: onEditShotClock == null || !has
                             ? null
                             : onEditShotClock,
@@ -4307,7 +4306,7 @@ class _Scoreboard extends StatelessWidget {
                             has && s.possessionArrow == TeamSide.guest,
                         panelColor: insetColor,
                         borderColor: borderColor,
-                        compact: compact,
+                        scale: scale,
                         onEditName: onEditTeamName == null
                             ? null
                             : () => onEditTeamName!(TeamSide.guest),
@@ -4345,7 +4344,7 @@ class _TeamPanel extends StatelessWidget {
   final bool hasPossession;
   final Color panelColor;
   final Color borderColor;
-  final bool compact;
+  final double scale;
   final Future<void> Function()? onEditName;
   final Future<void> Function()? onEditScore;
   final Future<void> Function()? onEditFouls;
@@ -4361,7 +4360,7 @@ class _TeamPanel extends StatelessWidget {
     this.hasPossession = false,
     required this.panelColor,
     required this.borderColor,
-    this.compact = false,
+    this.scale = 1,
     this.onEditName,
     this.onEditScore,
     this.onEditFouls,
@@ -4380,12 +4379,13 @@ class _TeamPanel extends StatelessWidget {
           ? Icons.arrow_back_ios_new_rounded
           : Icons.arrow_forward_ios_rounded,
       color: theme.colorScheme.primary,
-      size: compact ? 16 : 18,
+      size: 18 * scale,
     );
     final labelStyle = theme.textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w800,
       letterSpacing: 1.0,
       color: Colors.white,
+      fontSize: (theme.textTheme.titleMedium?.fontSize ?? 18) * scale,
     );
     final labelWidget = showArrow
         ? Row(
@@ -4418,13 +4418,13 @@ class _TeamPanel extends StatelessWidget {
             child: SizedBox(key: ValueKey(showArrow), child: labelWidget),
           ),
         ),
-        SizedBox(height: compact ? 2 : 6),
+        SizedBox(height: 6 * scale),
         Expanded(
           flex: 5,
           child: LayoutBuilder(
             builder: (context, box) {
               final baseFont = theme.textTheme.displayLarge?.fontSize ?? 60;
-              final scoreBoxHeight = box.maxHeight * 0.56;
+              final scoreBoxHeight = box.maxHeight * 0.52;
               final widthPadding = box.maxWidth * 0.035;
               final heightPadding = scoreBoxHeight * 0.04;
               final usableWidth = box.maxWidth - (widthPadding * 2);
@@ -4455,7 +4455,7 @@ class _TeamPanel extends StatelessWidget {
                           baseFont: baseFont,
                           targetFontSize: math.max(
                             fontSize,
-                            baseFont + (compact ? 8 : 22),
+                            baseFont + (20 * scale),
                           ),
                           color: Colors.white,
                         ),
@@ -4467,11 +4467,11 @@ class _TeamPanel extends StatelessWidget {
             },
           ),
         ),
-        SizedBox(height: compact ? 0 : 2),
+        SizedBox(height: 2 * scale),
         Transform.translate(
-          offset: Offset(0, -(compact ? 14.0 : 28.0)),
+          offset: Offset(0, -(24.0 * scale)),
           child: Padding(
-            padding: EdgeInsets.only(top: compact ? 4 : 8),
+            padding: EdgeInsets.only(top: 8 * scale),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -4484,10 +4484,10 @@ class _TeamPanel extends StatelessWidget {
                     foreground: Colors.white,
                     background: panelColor,
                     borderColorOverride: borderColor,
-                    compact: compact,
+                    scale: scale,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 8 * scale),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap:
@@ -4497,7 +4497,7 @@ class _TeamPanel extends StatelessWidget {
                     background: panelColor,
                     borderColor: borderColor,
                     timeouts: timeouts,
-                    compact: compact,
+                    scale: scale,
                   ),
                 ),
               ],
@@ -4514,7 +4514,7 @@ class _CenterPanel extends StatelessWidget {
   final String shotClockText;
   final Color backgroundColor;
   final Color borderColor;
-  final bool compact;
+  final double scale;
   final bool dimShotClock;
   final Future<void> Function()? onEditShotClock;
   const _CenterPanel({
@@ -4522,7 +4522,7 @@ class _CenterPanel extends StatelessWidget {
     required this.shotClockText,
     required this.backgroundColor,
     required this.borderColor,
-    this.compact = false,
+    this.scale = 1,
     this.dimShotClock = false,
     this.onEditShotClock,
   });
@@ -4539,15 +4539,16 @@ class _CenterPanel extends StatelessWidget {
       fontWeight: FontWeight.w700,
       letterSpacing: 1.0,
       color: Colors.white,
+      fontSize: (theme.textTheme.labelMedium?.fontSize ?? 12) * scale,
     );
-    final shotClockSide = compact ? 62.0 : 78.0;
+    final shotClockSide = 78.0 * scale;
     final shotClockStyle = _ClockBoxStyle(
       width: shotClockSide,
       height: shotClockSide,
       borderRadius: 0,
       backgroundColor: backgroundColor,
       textColorOverride: null,
-      horizontalPadding: compact ? 8 : 12,
+      horizontalPadding: 12 * scale,
     );
     final shotClockColor =
         dimShotClock ? Colors.white.withValues(alpha: 0.35) : Colors.red;
@@ -4556,15 +4557,21 @@ class _CenterPanel extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Transform.translate(
-          offset: Offset(0, -(compact ? 12.0 : 18.0)),
+          offset: Offset(0, -(18.0 * scale)),
           child: Column(
             children: [
-              Text('PERIOD', style: periodLabelStyle),
-              SizedBox(height: compact ? 4 : 6),
+              Text(
+                'PERIOD',
+                style: periodLabelStyle?.copyWith(
+                  fontSize:
+                      (theme.textTheme.labelLarge?.fontSize ?? 14) * scale,
+                ),
+              ),
+              SizedBox(height: 6 * scale),
               Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: compact ? 10 : 16,
-                  vertical: compact ? 4 : 8,
+                  horizontal: 16 * scale,
+                  vertical: 8 * scale,
                 ),
                 decoration: BoxDecoration(
                   color: backgroundColor,
@@ -4580,8 +4587,9 @@ class _CenterPanel extends StatelessWidget {
                       color: Colors.white,
                       fontFamily: 'TimesSquare',
                       fontSize:
-                          (theme.textTheme.headlineSmall?.fontSize ?? 32) +
-                              (compact ? -4 : -2),
+                          ((theme.textTheme.headlineSmall?.fontSize ?? 32) -
+                                  2) *
+                              scale,
                     ),
                   ),
                 ),
@@ -4589,9 +4597,9 @@ class _CenterPanel extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(height: compact ? 8 : 12),
+        SizedBox(height: 12 * scale),
         Text('SHOT CLOCK', style: shotClockLabelStyle),
-        SizedBox(height: compact ? 3 : 8),
+        SizedBox(height: 8 * scale),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onEditShotClock == null ? null : () => onEditShotClock!(),
@@ -4603,8 +4611,8 @@ class _CenterPanel extends StatelessWidget {
               color: shotClockColor,
               fontFamily: 'TimesSquare',
               letterSpacing: -0.4,
-              fontSize: (theme.textTheme.displayMedium?.fontSize ?? 36) +
-                  (compact ? -2 : 2),
+              fontSize:
+                  ((theme.textTheme.displayMedium?.fontSize ?? 36) + 2) * scale,
             ),
             styleOverrides: shotClockStyle,
           ),
@@ -4620,14 +4628,14 @@ class _StatPill extends StatelessWidget {
   final Color? foreground;
   final Color? background;
   final Color? borderColorOverride;
-  final bool compact;
+  final double scale;
   const _StatPill({
     required this.title,
     required this.value,
     this.foreground,
     this.background,
     this.borderColorOverride,
-    this.compact = false,
+    this.scale = 1,
   });
 
   @override
@@ -4646,13 +4654,14 @@ class _StatPill extends StatelessWidget {
             fontWeight: FontWeight.w600,
             letterSpacing: 0.4,
             color: textColor.withValues(alpha: 0.8),
+            fontSize: (theme.textTheme.labelMedium?.fontSize ?? 12) * scale,
           ),
         ),
-        SizedBox(height: compact ? 2 : 4),
+        SizedBox(height: 4 * scale),
         Container(
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 8 : 12,
-            vertical: compact ? 4 : 6,
+            horizontal: 12 * scale,
+            vertical: 6 * scale,
           ),
           decoration: BoxDecoration(
             color: boxColor,
@@ -4668,8 +4677,9 @@ class _StatPill extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: textColor,
                 fontFamily: 'TimesSquare',
-                fontSize: (theme.textTheme.headlineSmall?.fontSize ?? 32) +
-                    (compact ? -4 : -2),
+                fontSize:
+                    ((theme.textTheme.headlineSmall?.fontSize ?? 32) - 2) *
+                        scale,
               ),
             ),
           ),
@@ -4718,13 +4728,13 @@ class _TimeoutPill extends StatelessWidget {
   final Color foreground;
   final Color background;
   final Color borderColor;
-  final bool compact;
+  final double scale;
   const _TimeoutPill({
     required this.timeouts,
     required this.foreground,
     required this.background,
     required this.borderColor,
-    this.compact = false,
+    this.scale = 1,
   });
 
   @override
@@ -4734,6 +4744,7 @@ class _TimeoutPill extends StatelessWidget {
       fontWeight: FontWeight.w600,
       letterSpacing: 0.6,
       color: foreground.withValues(alpha: 0.8),
+      fontSize: (theme.textTheme.labelMedium?.fontSize ?? 12) * scale,
     );
     final int active = (timeouts ?? 0).clamp(0, 5);
 
@@ -4741,18 +4752,18 @@ class _TimeoutPill extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text('T.O.L.', style: labelStyle),
-        SizedBox(height: compact ? 4 : 6),
+        SizedBox(height: 6 * scale),
         Container(
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 8 : 12,
-            vertical: compact ? 4 : 6,
+            horizontal: 12 * scale,
+            vertical: 6 * scale,
           ),
           decoration: BoxDecoration(
             color: background,
             borderRadius: BorderRadius.zero,
             border: Border.all(color: borderColor, width: 2),
           ),
-          constraints: BoxConstraints(maxWidth: compact ? 58 : 78),
+          constraints: BoxConstraints(maxWidth: 78 * scale),
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: _TimeoutDots(
@@ -4760,7 +4771,7 @@ class _TimeoutPill extends StatelessWidget {
               totalCount: 5,
               activeColor: foreground,
               inactiveColor: foreground.withValues(alpha: 0.25),
-              dotSize: compact ? 4.5 : 6.5,
+              dotSize: 6.5 * scale,
             ),
           ),
         ),
