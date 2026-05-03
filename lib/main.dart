@@ -4186,27 +4186,186 @@ class _Scoreboard extends StatelessWidget {
     const backgroundColor = Color(0xFF111111);
     const insetColor = Color(0xFF1E1E1E);
     final borderColor = Colors.white.withValues(alpha: 0.22);
+    final labelStyle = theme.textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w800,
+      letterSpacing: 1.0,
+      color: Colors.white,
+      fontSize: 16,
+    );
+    final metaLabelStyle = theme.textTheme.labelLarge?.copyWith(
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.8,
+      color: Colors.white,
+      fontSize: 12,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final scale =
-            (constraints.maxWidth / _scoreboardDesignWidth).clamp(0.48, 1.0);
-        final horizontalPadding = 18.0 * scale;
-        final verticalPadding = 14.0 * scale;
-        final middleSpacing = 16.0 * scale;
+        final boardWidth = constraints.maxWidth;
+        final boardHeight = constraints.maxHeight;
+        final scale = (boardWidth / _scoreboardDesignWidth).clamp(0.48, 1.0);
         final gameClockStyle = _ClockBoxStyle(
-          width: 164 * scale,
-          height: 54 * scale,
+          width: boardWidth * 0.22,
+          height: boardHeight * 0.085,
           borderRadius: 0,
           backgroundColor: insetColor,
           textColorOverride: Colors.white,
-          horizontalPadding: 12 * scale,
+          horizontalPadding: 12,
         );
+        final shotClockStyle = _ClockBoxStyle(
+          width: boardWidth * 0.085,
+          height: boardWidth * 0.085,
+          borderRadius: 0,
+          backgroundColor: insetColor,
+          textColorOverride: null,
+          horizontalPadding: 8,
+        );
+        final periodBoxWidth = boardWidth * 0.075;
+        final periodBoxHeight = boardHeight * 0.075;
+        final teamBoxWidth = boardWidth * 0.235;
+        final teamBoxHeight = boardHeight * 0.275;
+        final leftTeamX = boardWidth * 0.055;
+        final rightTeamX = boardWidth - leftTeamX - teamBoxWidth;
+        final teamBoxTop = boardHeight * 0.17;
+        final clockTop = boardHeight * 0.03;
+        final periodTop = boardHeight * 0.46;
+        final shotClockTop = boardHeight * 0.64;
+        final statsTop = boardHeight * 0.83;
+        final timeoutTop = boardHeight * 0.92;
+        final periodLeft = (boardWidth - periodBoxWidth) / 2;
+        final shotClockLeft = (boardWidth - shotClockStyle.width) / 2;
+        final showHomeArrow = showArrow && s.possessionArrow == TeamSide.home;
+        final showGuestArrow = showArrow && s.possessionArrow == TeamSide.guest;
+        final shotClockColor =
+            shotClockHidden ? Colors.white.withValues(alpha: 0.35) : Colors.red;
 
-        final scoreboardBody = Container(
+        Widget buildTeamLabel(String text,
+            {required bool arrowLeft, required bool showArrowIcon}) {
+          final arrowIcon = Icon(
+            arrowLeft
+                ? Icons.arrow_back_ios_new_rounded
+                : Icons.arrow_forward_ios_rounded,
+            color: theme.colorScheme.primary,
+            size: 16,
+          );
+          final label = Text(text, style: labelStyle);
+          if (!showArrowIcon) return label;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: arrowLeft
+                ? [arrowIcon, const SizedBox(width: 4), label]
+                : [label, const SizedBox(width: 4), arrowIcon],
+          );
+        }
+
+        Widget buildScoreBox({
+          required String text,
+          required Future<void> Function()? onTap,
+        }) {
+          final baseFont = theme.textTheme.displayLarge?.fontSize ?? 60;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap == null ? null : () => onTap(),
+            child: Container(
+              decoration: BoxDecoration(
+                color: insetColor,
+                border: Border.all(color: borderColor, width: 2.5),
+              ),
+              padding: EdgeInsets.symmetric(
+                horizontal: teamBoxWidth * 0.08,
+                vertical: teamBoxHeight * 0.09,
+              ),
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: _BalancedScoreText(
+                    text: text,
+                    baseFont: baseFont,
+                    targetFontSize: teamBoxHeight * 0.34,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        Widget buildStatBox({
+          required String title,
+          required String value,
+          required Future<void> Function()? onTap,
+        }) {
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap == null ? null : () => onTap(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(title, style: metaLabelStyle),
+                SizedBox(height: 4 * scale),
+                Container(
+                  width: boardWidth * 0.05,
+                  height: boardHeight * 0.075,
+                  decoration: BoxDecoration(
+                    color: insetColor,
+                    border: Border.all(color: borderColor, width: 2),
+                  ),
+                  child: Center(
+                    child: Text(
+                      value,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        fontFamily: 'TimesSquare',
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        Widget buildTimeoutBox({
+          required int? timeouts,
+          required Future<void> Function()? onTap,
+        }) {
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap == null ? null : () => onTap(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('T.O.L.', style: metaLabelStyle),
+                SizedBox(height: 4 * scale),
+                Container(
+                  width: boardWidth * 0.09,
+                  height: boardHeight * 0.04,
+                  decoration: BoxDecoration(
+                    color: insetColor,
+                    border: Border.all(color: borderColor, width: 2),
+                  ),
+                  child: Center(
+                    child: _TimeoutDots(
+                      activeCount: (timeouts ?? 0).clamp(0, 5),
+                      totalCount: 5,
+                      activeColor: Colors.white,
+                      inactiveColor: Colors.white.withValues(alpha: 0.25),
+                      dotSize: 6,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Container(
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(24 * scale),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(color: borderColor, width: 3),
             boxShadow: [
               BoxShadow(
@@ -4216,470 +4375,198 @@ class _Scoreboard extends StatelessWidget {
               ),
             ],
           ),
-          padding: EdgeInsets.only(
-            left: horizontalPadding,
-            right: horizontalPadding,
-            top: verticalPadding,
-            bottom: 4.0 * scale,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Stack(
             children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap:
-                    onEditGameClock == null ? null : () => onEditGameClock!(),
-                child: _BoxedClockTight(
-                  text: gameClockText,
-                  textStyle: theme.textTheme.displayMedium?.copyWith(
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    fontWeight: FontWeight.w700,
-                    fontFamily: 'TimesSquare',
-                    fontSize: (theme.textTheme.displayMedium?.fontSize ?? 40) +
-                        (2 * scale),
+              Positioned(
+                top: clockTop,
+                left: (boardWidth - gameClockStyle.width) / 2,
+                width: gameClockStyle.width,
+                height: gameClockStyle.height,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap:
+                      onEditGameClock == null ? null : () => onEditGameClock!(),
+                  child: _BoxedClockTight(
+                    text: gameClockText,
+                    textStyle: theme.textTheme.displayMedium?.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'TimesSquare',
+                      fontSize: 34,
+                    ),
+                    styleOverrides: gameClockStyle,
                   ),
-                  styleOverrides: gameClockStyle,
                 ),
               ),
-              SizedBox(height: 6 * scale),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _TeamPanel(
-                        side: TeamSide.home,
-                        teamName: homeName,
-                        scoreText: has ? '${s.homeScore}' : '––',
-                        foulsText: has ? '${s.homeFouls}' : '––',
-                        timeouts: has ? s.homeTimeouts : null,
-                        showPossessionIndicator: showArrow,
-                        hasPossession:
-                            has && s.possessionArrow == TeamSide.home,
-                        panelColor: insetColor,
-                        borderColor: borderColor,
-                        scale: scale,
-                        onEditName: onEditTeamName == null
-                            ? null
-                            : () => onEditTeamName!(TeamSide.home),
-                        onEditScore: onEditScore == null || !has
-                            ? null
-                            : () => onEditScore!(TeamSide.home),
-                        onEditFouls: onEditFouls == null || !has
-                            ? null
-                            : () => onEditFouls!(TeamSide.home),
-                        onEditTimeouts: onEditTimeouts == null || !has
-                            ? null
-                            : () => onEditTimeouts!(TeamSide.home),
+              Positioned(
+                top: teamBoxTop - 40,
+                left: leftTeamX,
+                width: teamBoxWidth,
+                child: Center(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onEditTeamName == null
+                        ? null
+                        : () => onEditTeamName!(TeamSide.home),
+                    child: buildTeamLabel(
+                      homeName.trim().isEmpty ? 'HOME' : homeName,
+                      arrowLeft: true,
+                      showArrowIcon: showHomeArrow,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: teamBoxTop,
+                left: leftTeamX,
+                width: teamBoxWidth,
+                height: teamBoxHeight,
+                child: buildScoreBox(
+                  text: has ? '${s.homeScore}' : '––',
+                  onTap: onEditScore == null || !has
+                      ? null
+                      : () => onEditScore!(TeamSide.home),
+                ),
+              ),
+              Positioned(
+                top: teamBoxTop - 40,
+                left: rightTeamX,
+                width: teamBoxWidth,
+                child: Center(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onEditTeamName == null
+                        ? null
+                        : () => onEditTeamName!(TeamSide.guest),
+                    child: buildTeamLabel(
+                      guestName.trim().isEmpty ? 'GUEST' : guestName,
+                      arrowLeft: false,
+                      showArrowIcon: showGuestArrow,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: teamBoxTop,
+                left: rightTeamX,
+                width: teamBoxWidth,
+                height: teamBoxHeight,
+                child: buildScoreBox(
+                  text: has ? '${s.guestScore}' : '––',
+                  onTap: onEditScore == null || !has
+                      ? null
+                      : () => onEditScore!(TeamSide.guest),
+                ),
+              ),
+              Positioned(
+                top: periodTop,
+                left: periodLeft - 24,
+                width: periodBoxWidth + 48,
+                child: Center(
+                    child: Text('PERIOD',
+                        style: metaLabelStyle?.copyWith(fontSize: 14))),
+              ),
+              Positioned(
+                top: periodTop + 34,
+                left: periodLeft,
+                width: periodBoxWidth,
+                height: periodBoxHeight,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: insetColor,
+                    border: Border.all(color: borderColor, width: 2),
+                  ),
+                  child: Center(
+                    child: Text(
+                      periodText,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        fontFamily: 'TimesSquare',
+                        fontSize: 20,
                       ),
                     ),
-                    SizedBox(width: middleSpacing / 3),
-                    Flexible(
-                      flex: 2,
-                      child: _CenterPanel(
-                        periodText: periodText,
-                        shotClockText: shotClockText,
-                        dimShotClock: shotClockHidden,
-                        backgroundColor: insetColor,
-                        borderColor: borderColor,
-                        scale: scale,
-                        onEditShotClock: onEditShotClock == null || !has
-                            ? null
-                            : onEditShotClock,
-                      ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: shotClockTop,
+                left: shotClockLeft - 40,
+                width: shotClockStyle.width + 80,
+                child: Center(
+                    child: Text('SHOT CLOCK',
+                        style: metaLabelStyle?.copyWith(fontSize: 14))),
+              ),
+              Positioned(
+                top: shotClockTop + 32,
+                left: shotClockLeft,
+                width: shotClockStyle.width,
+                height: shotClockStyle.height,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onEditShotClock == null || !has
+                      ? null
+                      : () => onEditShotClock!(),
+                  child: _BoxedClockTight(
+                    text: shotClockText,
+                    textStyle: theme.textTheme.displaySmall?.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      fontWeight: FontWeight.w900,
+                      color: shotClockColor,
+                      fontFamily: 'TimesSquare',
+                      letterSpacing: -0.4,
+                      fontSize: 30,
                     ),
-                    SizedBox(width: middleSpacing / 3),
-                    Expanded(
-                      child: _TeamPanel(
-                        side: TeamSide.guest,
-                        teamName: guestName,
-                        scoreText: has ? '${s.guestScore}' : '––',
-                        foulsText: has ? '${s.guestFouls}' : '––',
-                        timeouts: has ? s.guestTimeouts : null,
-                        showPossessionIndicator: showArrow,
-                        hasPossession:
-                            has && s.possessionArrow == TeamSide.guest,
-                        panelColor: insetColor,
-                        borderColor: borderColor,
-                        scale: scale,
-                        onEditName: onEditTeamName == null
-                            ? null
-                            : () => onEditTeamName!(TeamSide.guest),
-                        onEditScore: onEditScore == null || !has
-                            ? null
-                            : () => onEditScore!(TeamSide.guest),
-                        onEditFouls: onEditFouls == null || !has
-                            ? null
-                            : () => onEditFouls!(TeamSide.guest),
-                        onEditTimeouts: onEditTimeouts == null || !has
-                            ? null
-                            : () => onEditTimeouts!(TeamSide.guest),
-                      ),
-                    ),
-                  ],
+                    styleOverrides: shotClockStyle,
+                  ),
+                ),
+              ),
+              Positioned(
+                top: statsTop,
+                left: boardWidth * 0.09,
+                child: buildStatBox(
+                  title: 'FLS',
+                  value: has ? '${s.homeFouls}' : '––',
+                  onTap: onEditFouls == null || !has
+                      ? null
+                      : () => onEditFouls!(TeamSide.home),
+                ),
+              ),
+              Positioned(
+                top: timeoutTop,
+                left: boardWidth * 0.07,
+                child: buildTimeoutBox(
+                  timeouts: has ? s.homeTimeouts : null,
+                  onTap: onEditTimeouts == null || !has
+                      ? null
+                      : () => onEditTimeouts!(TeamSide.home),
+                ),
+              ),
+              Positioned(
+                top: statsTop,
+                right: boardWidth * 0.09,
+                child: buildStatBox(
+                  title: 'FLS',
+                  value: has ? '${s.guestFouls}' : '––',
+                  onTap: onEditFouls == null || !has
+                      ? null
+                      : () => onEditFouls!(TeamSide.guest),
+                ),
+              ),
+              Positioned(
+                top: timeoutTop,
+                right: boardWidth * 0.07,
+                child: buildTimeoutBox(
+                  timeouts: has ? s.guestTimeouts : null,
+                  onTap: onEditTimeouts == null || !has
+                      ? null
+                      : () => onEditTimeouts!(TeamSide.guest),
                 ),
               ),
             ],
           ),
         );
-
-        return scoreboardBody;
       },
-    );
-  }
-}
-
-class _TeamPanel extends StatelessWidget {
-  final TeamSide side;
-  final String teamName;
-  final String scoreText;
-  final String foulsText;
-  final int? timeouts;
-  final bool showPossessionIndicator;
-  final bool hasPossession;
-  final Color panelColor;
-  final Color borderColor;
-  final double scale;
-  final Future<void> Function()? onEditName;
-  final Future<void> Function()? onEditScore;
-  final Future<void> Function()? onEditFouls;
-  final Future<void> Function()? onEditTimeouts;
-
-  const _TeamPanel({
-    required this.side,
-    required this.teamName,
-    required this.scoreText,
-    required this.foulsText,
-    required this.timeouts,
-    this.showPossessionIndicator = false,
-    this.hasPossession = false,
-    required this.panelColor,
-    required this.borderColor,
-    this.scale = 1,
-    this.onEditName,
-    this.onEditScore,
-    this.onEditFouls,
-    this.onEditTimeouts,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final baseLabel = side == TeamSide.home ? 'HOME' : 'GUEST';
-    final trimmedName = teamName.trim();
-    final displayName = trimmedName.isEmpty ? baseLabel : trimmedName;
-    final theme = Theme.of(context);
-    final showArrow = showPossessionIndicator && hasPossession;
-    final arrowIcon = Icon(
-      side == TeamSide.home
-          ? Icons.arrow_back_ios_new_rounded
-          : Icons.arrow_forward_ios_rounded,
-      color: theme.colorScheme.primary,
-      size: 18 * scale,
-    );
-    final labelStyle = theme.textTheme.titleMedium?.copyWith(
-      fontWeight: FontWeight.w800,
-      letterSpacing: 1.0,
-      color: Colors.white,
-      fontSize: (theme.textTheme.titleMedium?.fontSize ?? 18) * scale,
-    );
-    final labelWidget = showArrow
-        ? Row(
-            mainAxisSize: MainAxisSize.min,
-            children: side == TeamSide.home
-                ? [
-                    arrowIcon,
-                    const SizedBox(width: 4),
-                    Text(displayName, style: labelStyle)
-                  ]
-                : [
-                    Text(displayName, style: labelStyle),
-                    const SizedBox(width: 4),
-                    arrowIcon
-                  ],
-          )
-        : Text(displayName, style: labelStyle);
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onEditName == null ? null : () => onEditName!(),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            transitionBuilder: (child, animation) =>
-                FadeTransition(opacity: animation, child: child),
-            child: SizedBox(key: ValueKey(showArrow), child: labelWidget),
-          ),
-        ),
-        SizedBox(height: 4 * scale),
-        Expanded(
-          flex: 5,
-          child: LayoutBuilder(
-            builder: (context, box) {
-              final baseFont = theme.textTheme.displayLarge?.fontSize ?? 60;
-              final scoreBoxHeight = box.maxHeight * 0.44;
-              final widthPadding = box.maxWidth * 0.05;
-              final heightPadding = scoreBoxHeight * 0.06;
-              final usableWidth = box.maxWidth - (widthPadding * 2);
-              final fontSize =
-                  math.min(scoreBoxHeight * 0.54, usableWidth * 0.42);
-              return Align(
-                alignment: Alignment.topCenter,
-                child: SizedBox(
-                  height: scoreBoxHeight,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onEditScore == null ? null : () => onEditScore!(),
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: panelColor,
-                        borderRadius: BorderRadius.zero,
-                        border: Border.all(color: borderColor, width: 2.5),
-                        boxShadow: const [],
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: widthPadding,
-                        vertical: heightPadding,
-                      ),
-                      child: Center(
-                        child: FittedBox(
-                          fit: BoxFit.contain,
-                          child: _BalancedScoreText(
-                            text: scoreText,
-                            baseFont: baseFont,
-                            targetFontSize: fontSize,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        SizedBox(height: 4 * scale),
-        Transform.translate(
-          offset: Offset(0, -(8.0 * scale)),
-          child: Padding(
-            padding: EdgeInsets.only(top: 6 * scale),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onEditFouls == null ? null : () => onEditFouls!(),
-                  child: _StatPill(
-                    title: 'FLS',
-                    value: foulsText,
-                    foreground: Colors.white,
-                    background: panelColor,
-                    borderColorOverride: borderColor,
-                    scale: scale,
-                  ),
-                ),
-                SizedBox(height: 8 * scale),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap:
-                      onEditTimeouts == null ? null : () => onEditTimeouts!(),
-                  child: _TimeoutPill(
-                    foreground: Colors.white,
-                    background: panelColor,
-                    borderColor: borderColor,
-                    timeouts: timeouts,
-                    scale: scale,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CenterPanel extends StatelessWidget {
-  final String periodText;
-  final String shotClockText;
-  final Color backgroundColor;
-  final Color borderColor;
-  final double scale;
-  final bool dimShotClock;
-  final Future<void> Function()? onEditShotClock;
-  const _CenterPanel({
-    required this.periodText,
-    required this.shotClockText,
-    required this.backgroundColor,
-    required this.borderColor,
-    this.scale = 1,
-    this.dimShotClock = false,
-    this.onEditShotClock,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final periodLabelStyle = theme.textTheme.labelLarge?.copyWith(
-      fontWeight: FontWeight.w700,
-      letterSpacing: 0.8,
-      color: Colors.white,
-    );
-    final shotClockLabelStyle = theme.textTheme.labelMedium?.copyWith(
-      fontWeight: FontWeight.w700,
-      letterSpacing: 1.0,
-      color: Colors.white,
-      fontSize: (theme.textTheme.labelMedium?.fontSize ?? 12) * scale,
-    );
-    final shotClockSide = 78.0 * scale;
-    final shotClockStyle = _ClockBoxStyle(
-      width: shotClockSide,
-      height: shotClockSide,
-      borderRadius: 0,
-      backgroundColor: backgroundColor,
-      textColorOverride: null,
-      horizontalPadding: 12 * scale,
-    );
-    final shotClockColor =
-        dimShotClock ? Colors.white.withValues(alpha: 0.35) : Colors.red;
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Transform.translate(
-          offset: Offset(0, -(10.0 * scale)),
-          child: Column(
-            children: [
-              Text(
-                'PERIOD',
-                style: periodLabelStyle?.copyWith(
-                  fontSize:
-                      (theme.textTheme.labelLarge?.fontSize ?? 14) * scale,
-                ),
-              ),
-              SizedBox(height: 6 * scale),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16 * scale,
-                  vertical: 8 * scale,
-                ),
-                decoration: BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.zero,
-                  border: Border.all(color: borderColor, width: 2),
-                ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    periodText,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      fontFamily: 'TimesSquare',
-                      fontSize:
-                          ((theme.textTheme.headlineSmall?.fontSize ?? 32) -
-                                  2) *
-                              scale,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: 8 * scale),
-        Text('SHOT CLOCK', style: shotClockLabelStyle),
-        SizedBox(height: 6 * scale),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onEditShotClock == null ? null : () => onEditShotClock!(),
-          child: _BoxedClockTight(
-            text: shotClockText,
-            textStyle: theme.textTheme.displaySmall?.copyWith(
-              fontFeatures: const [FontFeature.tabularFigures()],
-              fontWeight: FontWeight.w900,
-              color: shotClockColor,
-              fontFamily: 'TimesSquare',
-              letterSpacing: -0.4,
-              fontSize:
-                  ((theme.textTheme.displayMedium?.fontSize ?? 36) + 2) * scale,
-            ),
-            styleOverrides: shotClockStyle,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatPill extends StatelessWidget {
-  final String title;
-  final String value;
-  final Color? foreground;
-  final Color? background;
-  final Color? borderColorOverride;
-  final double scale;
-  const _StatPill({
-    required this.title,
-    required this.value,
-    this.foreground,
-    this.background,
-    this.borderColorOverride,
-    this.scale = 1,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textColor = foreground ?? theme.colorScheme.onSurfaceVariant;
-    final boxColor = background ?? theme.colorScheme.surface;
-    final outlineColor =
-        borderColorOverride ?? theme.colorScheme.outlineVariant;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          title,
-          style: theme.textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.4,
-            color: textColor.withValues(alpha: 0.8),
-            fontSize: (theme.textTheme.labelMedium?.fontSize ?? 12) * scale,
-          ),
-        ),
-        SizedBox(height: 4 * scale),
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 12 * scale,
-            vertical: 6 * scale,
-          ),
-          decoration: BoxDecoration(
-            color: boxColor,
-            borderRadius: BorderRadius.zero,
-            border: Border.all(color: outlineColor, width: 2),
-          ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-                fontWeight: FontWeight.w700,
-                color: textColor,
-                fontFamily: 'TimesSquare',
-                fontSize:
-                    ((theme.textTheme.headlineSmall?.fontSize ?? 32) - 2) *
-                        scale,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -4714,63 +4601,6 @@ class _BalancedScoreText extends StatelessWidget {
         fontFamily: 'TimesSquare',
         fontSize: math.max(fontSize, baseFont * scale),
       ),
-    );
-  }
-}
-
-class _TimeoutPill extends StatelessWidget {
-  final int? timeouts;
-  final Color foreground;
-  final Color background;
-  final Color borderColor;
-  final double scale;
-  const _TimeoutPill({
-    required this.timeouts,
-    required this.foreground,
-    required this.background,
-    required this.borderColor,
-    this.scale = 1,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final labelStyle = theme.textTheme.labelMedium?.copyWith(
-      fontWeight: FontWeight.w600,
-      letterSpacing: 0.6,
-      color: foreground.withValues(alpha: 0.8),
-      fontSize: (theme.textTheme.labelMedium?.fontSize ?? 12) * scale,
-    );
-    final int active = (timeouts ?? 0).clamp(0, 5);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('T.O.L.', style: labelStyle),
-        SizedBox(height: 6 * scale),
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 12 * scale,
-            vertical: 6 * scale,
-          ),
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.zero,
-            border: Border.all(color: borderColor, width: 2),
-          ),
-          constraints: BoxConstraints(maxWidth: 78 * scale),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: _TimeoutDots(
-              activeCount: active,
-              totalCount: 5,
-              activeColor: foreground,
-              inactiveColor: foreground.withValues(alpha: 0.25),
-              dotSize: 6.5 * scale,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
