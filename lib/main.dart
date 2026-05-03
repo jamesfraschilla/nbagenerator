@@ -468,7 +468,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Expanded(
                                     flex: 8,
                                     child: _buildScoreboardSection(
-                                      maxWidth: 760,
+                                      maxWidth: 680,
                                     ),
                                   ),
                                   const SizedBox(width: 24),
@@ -487,7 +487,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             : Column(
                                 children: [
                                   _buildScoreboardSection(
-                                    maxWidth: isTabletLayout ? 720 : 560,
+                                    maxWidth: isTabletLayout ? 640 : 520,
                                   ),
                                   const SizedBox(height: 12),
                                   _buildControlPanel(
@@ -4087,8 +4087,8 @@ class _ClockBoxStyle {
   });
 }
 
-const double _scoreboardDesignWidth = 680;
-const double _scoreboardAspectRatio = 1.0;
+const double _scoreboardDesignWidth = 760;
+const double _scoreboardAspectRatio = 1.03;
 
 class _BoxedClockTight extends StatelessWidget {
   final String text;
@@ -4195,7 +4195,7 @@ class _Scoreboard extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final scale =
-            (constraints.maxWidth / _scoreboardDesignWidth).clamp(0.82, 1.0);
+            (constraints.maxWidth / _scoreboardDesignWidth).clamp(0.48, 1.0);
         final horizontalPadding = 14.0 * scale;
         final verticalPadding = 18.0 * scale;
         final middleSpacing = 12.0 * scale;
@@ -4450,14 +4450,14 @@ class _TeamPanel extends StatelessWidget {
                         vertical: heightPadding,
                       ),
                       child: Center(
-                        child: _BalancedScoreText(
-                          text: scoreText,
-                          baseFont: baseFont,
-                          targetFontSize: math.max(
-                            fontSize,
-                            baseFont + (20 * scale),
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          child: _BalancedScoreText(
+                            text: scoreText,
+                            baseFont: baseFont,
+                            targetFontSize: fontSize,
+                            color: Colors.white,
                           ),
-                          color: Colors.white,
                         ),
                       ),
                     ),
