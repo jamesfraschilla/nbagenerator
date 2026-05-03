@@ -400,12 +400,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final has = controller.hasScenario;
     final s = controller.scenario;
     final headerOpacity = _showAnimation ? 0.3 : 1.0;
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final titleFontSize = screenWidth >= 900
-        ? 40.0
-        : screenWidth >= 600
-            ? 34.0
-            : 28.0;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: PreferredSize(
@@ -414,16 +408,8 @@ class _HomeScreenState extends State<HomeScreen> {
           opacity: headerOpacity,
           duration: const Duration(milliseconds: 200),
           child: AppBar(
-            title: Text(
-              'CLUTCH TIME',
-              style: TextStyle(
-                fontFamily: 'DIN',
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.2,
-                fontSize: titleFontSize,
-              ),
-            ),
-            centerTitle: true,
+            title: const SizedBox.shrink(),
+            centerTitle: false,
             actions: [
               IconButton(
                 icon: const Icon(Icons.history),
@@ -441,7 +427,7 @@ class _HomeScreenState extends State<HomeScreen> {
             final isWideLayout = constraints.maxWidth >= 1100;
             final isTabletLayout = constraints.maxWidth >= 700;
             final contentMaxWidth = constraints.maxWidth >= 1200
-                ? 760.0
+                ? 900.0
                 : isTabletLayout
                     ? 720.0
                     : 560.0;
@@ -532,13 +518,12 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                   child: _OutsideMeta(
                     controller: controller,
                     forceLightText: _exportingImage || _forceLightExportTheme,
                   ),
                 ),
-                const SizedBox(height: 4),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12.0, vertical: 6.0),
@@ -4205,33 +4190,33 @@ class _Scoreboard extends StatelessWidget {
         final boardHeight = constraints.maxHeight;
         final scale = (boardWidth / _scoreboardDesignWidth).clamp(0.48, 1.0);
         final gameClockStyle = _ClockBoxStyle(
-          width: boardWidth * 0.22,
-          height: boardHeight * 0.085,
+          width: boardWidth * 0.34,
+          height: boardHeight * 0.11,
           borderRadius: 0,
           backgroundColor: insetColor,
           textColorOverride: Colors.white,
           horizontalPadding: 12,
         );
         final shotClockStyle = _ClockBoxStyle(
-          width: boardWidth * 0.085,
-          height: boardWidth * 0.085,
+          width: boardWidth * 0.16,
+          height: boardWidth * 0.16,
           borderRadius: 0,
           backgroundColor: insetColor,
           textColorOverride: null,
           horizontalPadding: 8,
         );
-        final periodBoxWidth = boardWidth * 0.075;
-        final periodBoxHeight = boardHeight * 0.075;
-        final teamBoxWidth = boardWidth * 0.235;
-        final teamBoxHeight = boardHeight * 0.275;
-        final leftTeamX = boardWidth * 0.055;
+        final periodBoxWidth = boardWidth * 0.08;
+        final periodBoxHeight = boardHeight * 0.085;
+        final teamBoxWidth = boardWidth * 0.25;
+        final teamBoxHeight = boardHeight * 0.31;
+        final leftTeamX = boardWidth * 0.045;
         final rightTeamX = boardWidth - leftTeamX - teamBoxWidth;
-        final teamBoxTop = boardHeight * 0.17;
-        final clockTop = boardHeight * 0.03;
-        final periodTop = boardHeight * 0.46;
-        final shotClockTop = boardHeight * 0.64;
-        final statsTop = boardHeight * 0.83;
-        final timeoutTop = boardHeight * 0.92;
+        final teamBoxTop = boardHeight * 0.18;
+        final clockTop = boardHeight * 0.035;
+        final periodTop = boardHeight * 0.45;
+        final shotClockTop = boardHeight * 0.59;
+        final statsTop = boardHeight * 0.75;
+        final timeoutTop = boardHeight * 0.875;
         final periodLeft = (boardWidth - periodBoxWidth) / 2;
         final shotClockLeft = (boardWidth - shotClockStyle.width) / 2;
         final showHomeArrow = showArrow && s.possessionArrow == TeamSide.home;
@@ -4656,25 +4641,30 @@ class _OutsideMeta extends StatelessWidget {
     final homeTeam = controller.homeTeamName;
     final guestTeam = controller.guestTeamName;
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
+          fontSize: 22,
           color: forceLightText
               ? Colors.black
               : Theme.of(context).textTheme.titleMedium?.color,
         );
-    String startText = '*Start: ';
+    String possessionStartText = 'Possession Start: ';
+    String startTypeText = 'Start Type: ';
     if (has) {
       final String type = startTypeLabel(s.startType);
-      final String possession = (s.startType == StartType.jumpBall)
-          ? ''
-          : ' (${s.possession == TeamSide.home ? homeTeam : guestTeam})';
-      startText += '$type$possession*';
+      final String possession =
+          s.possession == TeamSide.home ? homeTeam : guestTeam;
+      possessionStartText += possession;
+      startTypeText += type;
     } else {
-      startText += '––';
+      possessionStartText += '––';
+      startTypeText += '––';
     }
 
     return Column(
       children: [
-        Text(startText, style: titleStyle),
+        Text(possessionStartText, style: titleStyle),
+        const SizedBox(height: 8),
+        Text(startTypeText, style: titleStyle),
       ],
     );
   }
