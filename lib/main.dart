@@ -518,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
                   child: _OutsideMeta(
                     controller: controller,
                     forceLightText: _exportingImage || _forceLightExportTheme,
@@ -4066,7 +4066,7 @@ class _ClockBoxStyle {
 }
 
 const double _scoreboardDesignWidth = 760;
-const double _scoreboardAspectRatio = 1.2;
+const double _scoreboardAspectRatio = 1.38;
 const double _scoreboardDesignHeight =
     _scoreboardDesignWidth / _scoreboardAspectRatio;
 
@@ -4190,33 +4190,38 @@ class _Scoreboard extends StatelessWidget {
         final boardHeight = constraints.maxHeight;
         final scale = (boardWidth / _scoreboardDesignWidth).clamp(0.48, 1.0);
         final gameClockStyle = _ClockBoxStyle(
-          width: boardWidth * 0.34,
-          height: boardHeight * 0.11,
+          width: boardWidth * 0.33,
+          height: boardHeight * 0.115,
           borderRadius: 0,
           backgroundColor: insetColor,
           textColorOverride: Colors.white,
           horizontalPadding: 12,
         );
         final shotClockStyle = _ClockBoxStyle(
-          width: boardWidth * 0.16,
-          height: boardWidth * 0.16,
+          width: boardWidth * 0.15,
+          height: boardWidth * 0.15,
           borderRadius: 0,
           backgroundColor: insetColor,
           textColorOverride: null,
           horizontalPadding: 8,
         );
-        final periodBoxWidth = boardWidth * 0.08;
-        final periodBoxHeight = boardHeight * 0.085;
-        final teamBoxWidth = boardWidth * 0.25;
-        final teamBoxHeight = boardHeight * 0.31;
+        final periodBoxWidth = boardWidth * 0.075;
+        final periodBoxHeight = boardHeight * 0.08;
+        final teamBoxWidth = boardWidth * 0.255;
+        final teamBoxHeight = boardHeight * 0.325;
         final leftTeamX = boardWidth * 0.045;
         final rightTeamX = boardWidth - leftTeamX - teamBoxWidth;
-        final teamBoxTop = boardHeight * 0.18;
-        final clockTop = boardHeight * 0.035;
-        final periodTop = boardHeight * 0.45;
-        final shotClockTop = boardHeight * 0.59;
-        final statsTop = boardHeight * 0.75;
-        final timeoutTop = boardHeight * 0.875;
+        final teamBoxTop = boardHeight * 0.215;
+        final clockTop = boardHeight * 0.045;
+        final scoreBoxCenterY = teamBoxTop + (teamBoxHeight / 2);
+        final scoreBoxBottom = teamBoxTop + teamBoxHeight;
+        final periodGroupHeight = periodBoxHeight + 34;
+        final periodLabelTop = scoreBoxCenterY - (periodGroupHeight / 2);
+        final periodBoxTop = periodLabelTop + 34;
+        final shotClockLabelTop = scoreBoxBottom - 30;
+        final shotClockBoxTop = scoreBoxBottom;
+        final statsTop = scoreBoxBottom + (boardHeight * 0.055);
+        final timeoutTop = statsTop + (boardHeight * 0.145);
         final periodLeft = (boardWidth - periodBoxWidth) / 2;
         final shotClockLeft = (boardWidth - shotClockStyle.width) / 2;
         final showHomeArrow = showArrow && s.possessionArrow == TeamSide.home;
@@ -4257,8 +4262,8 @@ class _Scoreboard extends StatelessWidget {
                 border: Border.all(color: borderColor, width: 2.5),
               ),
               padding: EdgeInsets.symmetric(
-                horizontal: teamBoxWidth * 0.08,
-                vertical: teamBoxHeight * 0.09,
+                horizontal: teamBoxWidth * 0.07,
+                vertical: teamBoxHeight * 0.07,
               ),
               child: Center(
                 child: FittedBox(
@@ -4266,7 +4271,7 @@ class _Scoreboard extends StatelessWidget {
                   child: _BalancedScoreText(
                     text: text,
                     baseFont: baseFont,
-                    targetFontSize: teamBoxHeight * 0.34,
+                    targetFontSize: teamBoxHeight * 0.58,
                     color: Colors.white,
                   ),
                 ),
@@ -4289,8 +4294,8 @@ class _Scoreboard extends StatelessWidget {
                 Text(title, style: metaLabelStyle),
                 SizedBox(height: 4 * scale),
                 Container(
-                  width: boardWidth * 0.05,
-                  height: boardHeight * 0.075,
+                  width: boardWidth * 0.07,
+                  height: boardHeight * 0.095,
                   decoration: BoxDecoration(
                     color: insetColor,
                     border: Border.all(color: borderColor, width: 2),
@@ -4303,7 +4308,7 @@ class _Scoreboard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                         fontFamily: 'TimesSquare',
-                        fontSize: 18,
+                        fontSize: 28,
                       ),
                     ),
                   ),
@@ -4326,8 +4331,8 @@ class _Scoreboard extends StatelessWidget {
                 Text('T.O.L.', style: metaLabelStyle),
                 SizedBox(height: 4 * scale),
                 Container(
-                  width: boardWidth * 0.09,
-                  height: boardHeight * 0.04,
+                  width: boardWidth * 0.13,
+                  height: boardHeight * 0.05,
                   decoration: BoxDecoration(
                     color: insetColor,
                     border: Border.all(color: borderColor, width: 2),
@@ -4338,7 +4343,7 @@ class _Scoreboard extends StatelessWidget {
                       totalCount: 5,
                       activeColor: Colors.white,
                       inactiveColor: Colors.white.withValues(alpha: 0.25),
-                      dotSize: 6,
+                      dotSize: 7.5,
                     ),
                   ),
                 ),
@@ -4384,7 +4389,7 @@ class _Scoreboard extends StatelessWidget {
                 ),
               ),
               Positioned(
-                top: teamBoxTop - 40,
+                top: teamBoxTop - 44,
                 left: leftTeamX,
                 width: teamBoxWidth,
                 child: Center(
@@ -4414,7 +4419,7 @@ class _Scoreboard extends StatelessWidget {
                 ),
               ),
               Positioned(
-                top: teamBoxTop - 40,
+                top: teamBoxTop - 44,
                 left: rightTeamX,
                 width: teamBoxWidth,
                 child: Center(
@@ -4444,15 +4449,15 @@ class _Scoreboard extends StatelessWidget {
                 ),
               ),
               Positioned(
-                top: periodTop,
+                top: periodLabelTop,
                 left: periodLeft - 24,
                 width: periodBoxWidth + 48,
                 child: Center(
                     child: Text('PERIOD',
-                        style: metaLabelStyle?.copyWith(fontSize: 14))),
+                        style: metaLabelStyle?.copyWith(fontSize: 15))),
               ),
               Positioned(
-                top: periodTop + 34,
+                top: periodBoxTop,
                 left: periodLeft,
                 width: periodBoxWidth,
                 height: periodBoxHeight,
@@ -4468,22 +4473,22 @@ class _Scoreboard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                         fontFamily: 'TimesSquare',
-                        fontSize: 20,
+                        fontSize: 22,
                       ),
                     ),
                   ),
                 ),
               ),
               Positioned(
-                top: shotClockTop,
+                top: shotClockLabelTop,
                 left: shotClockLeft - 40,
                 width: shotClockStyle.width + 80,
                 child: Center(
                     child: Text('SHOT CLOCK',
-                        style: metaLabelStyle?.copyWith(fontSize: 14))),
+                        style: metaLabelStyle?.copyWith(fontSize: 15))),
               ),
               Positioned(
-                top: shotClockTop + 32,
+                top: shotClockBoxTop,
                 left: shotClockLeft,
                 width: shotClockStyle.width,
                 height: shotClockStyle.height,
@@ -4500,7 +4505,7 @@ class _Scoreboard extends StatelessWidget {
                       color: shotClockColor,
                       fontFamily: 'TimesSquare',
                       letterSpacing: -0.4,
-                      fontSize: 30,
+                      fontSize: 56,
                     ),
                     styleOverrides: shotClockStyle,
                   ),
@@ -4508,44 +4513,56 @@ class _Scoreboard extends StatelessWidget {
               ),
               Positioned(
                 top: statsTop,
-                left: boardWidth * 0.09,
-                child: buildStatBox(
-                  title: 'FLS',
-                  value: has ? '${s.homeFouls}' : '––',
-                  onTap: onEditFouls == null || !has
-                      ? null
-                      : () => onEditFouls!(TeamSide.home),
+                left: leftTeamX,
+                width: teamBoxWidth,
+                child: Center(
+                  child: buildStatBox(
+                    title: 'FLS',
+                    value: has ? '${s.homeFouls}' : '––',
+                    onTap: onEditFouls == null || !has
+                        ? null
+                        : () => onEditFouls!(TeamSide.home),
+                  ),
                 ),
               ),
               Positioned(
                 top: timeoutTop,
-                left: boardWidth * 0.07,
-                child: buildTimeoutBox(
-                  timeouts: has ? s.homeTimeouts : null,
-                  onTap: onEditTimeouts == null || !has
-                      ? null
-                      : () => onEditTimeouts!(TeamSide.home),
+                left: leftTeamX,
+                width: teamBoxWidth,
+                child: Center(
+                  child: buildTimeoutBox(
+                    timeouts: has ? s.homeTimeouts : null,
+                    onTap: onEditTimeouts == null || !has
+                        ? null
+                        : () => onEditTimeouts!(TeamSide.home),
+                  ),
                 ),
               ),
               Positioned(
                 top: statsTop,
-                right: boardWidth * 0.09,
-                child: buildStatBox(
-                  title: 'FLS',
-                  value: has ? '${s.guestFouls}' : '––',
-                  onTap: onEditFouls == null || !has
-                      ? null
-                      : () => onEditFouls!(TeamSide.guest),
+                left: rightTeamX,
+                width: teamBoxWidth,
+                child: Center(
+                  child: buildStatBox(
+                    title: 'FLS',
+                    value: has ? '${s.guestFouls}' : '––',
+                    onTap: onEditFouls == null || !has
+                        ? null
+                        : () => onEditFouls!(TeamSide.guest),
+                  ),
                 ),
               ),
               Positioned(
                 top: timeoutTop,
-                right: boardWidth * 0.07,
-                child: buildTimeoutBox(
-                  timeouts: has ? s.guestTimeouts : null,
-                  onTap: onEditTimeouts == null || !has
-                      ? null
-                      : () => onEditTimeouts!(TeamSide.guest),
+                left: rightTeamX,
+                width: teamBoxWidth,
+                child: Center(
+                  child: buildTimeoutBox(
+                    timeouts: has ? s.guestTimeouts : null,
+                    onTap: onEditTimeouts == null || !has
+                        ? null
+                        : () => onEditTimeouts!(TeamSide.guest),
+                  ),
                 ),
               ),
             ],
@@ -4571,8 +4588,8 @@ class _BalancedScoreText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final digits = text.length;
-    final adjustments = {2: 0.74, 3: 0.68, 4: 0.62};
-    final scale = adjustments[digits] ?? 0.58;
+    final adjustments = {2: 0.96, 3: 0.88, 4: 0.8};
+    final scale = adjustments[digits] ?? 0.76;
     final fontSize = targetFontSize * scale;
 
     final theme = Theme.of(context);
@@ -4582,7 +4599,7 @@ class _BalancedScoreText extends StatelessWidget {
         fontFeatures: const [FontFeature.tabularFigures()],
         fontWeight: FontWeight.w900,
         color: color,
-        letterSpacing: -1.5,
+        letterSpacing: -1.0,
         fontFamily: 'TimesSquare',
         fontSize: math.max(fontSize, baseFont * scale),
       ),
