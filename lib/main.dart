@@ -4099,7 +4099,7 @@ class _ClockBoxStyle {
 }
 
 const double _scoreboardDesignWidth = 760;
-const double _scoreboardAspectRatio = 1.03;
+const double _scoreboardAspectRatio = 1.2;
 const double _scoreboardDesignHeight =
     _scoreboardDesignWidth / _scoreboardAspectRatio;
 
@@ -4209,9 +4209,9 @@ class _Scoreboard extends StatelessWidget {
       builder: (context, constraints) {
         final scale =
             (constraints.maxWidth / _scoreboardDesignWidth).clamp(0.48, 1.0);
-        final horizontalPadding = 14.0 * scale;
-        final verticalPadding = 18.0 * scale;
-        final middleSpacing = 12.0 * scale;
+        final horizontalPadding = 18.0 * scale;
+        final verticalPadding = 14.0 * scale;
+        final middleSpacing = 16.0 * scale;
         final gameClockStyle = _ClockBoxStyle(
           width: 164 * scale,
           height: 54 * scale,
@@ -4259,7 +4259,7 @@ class _Scoreboard extends StatelessWidget {
                   styleOverrides: gameClockStyle,
                 ),
               ),
-              SizedBox(height: 10 * scale),
+              SizedBox(height: 6 * scale),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -4431,18 +4431,18 @@ class _TeamPanel extends StatelessWidget {
             child: SizedBox(key: ValueKey(showArrow), child: labelWidget),
           ),
         ),
-        SizedBox(height: 6 * scale),
+        SizedBox(height: 4 * scale),
         Expanded(
           flex: 5,
           child: LayoutBuilder(
             builder: (context, box) {
               final baseFont = theme.textTheme.displayLarge?.fontSize ?? 60;
-              final scoreBoxHeight = box.maxHeight * 0.52;
-              final widthPadding = box.maxWidth * 0.035;
-              final heightPadding = scoreBoxHeight * 0.04;
+              final scoreBoxHeight = box.maxHeight * 0.44;
+              final widthPadding = box.maxWidth * 0.05;
+              final heightPadding = scoreBoxHeight * 0.06;
               final usableWidth = box.maxWidth - (widthPadding * 2);
               final fontSize =
-                  math.min(scoreBoxHeight * 0.62, usableWidth * 0.5);
+                  math.min(scoreBoxHeight * 0.54, usableWidth * 0.42);
               return Align(
                 alignment: Alignment.topCenter,
                 child: SizedBox(
@@ -4480,11 +4480,11 @@ class _TeamPanel extends StatelessWidget {
             },
           ),
         ),
-        SizedBox(height: 2 * scale),
+        SizedBox(height: 4 * scale),
         Transform.translate(
-          offset: Offset(0, -(24.0 * scale)),
+          offset: Offset(0, -(8.0 * scale)),
           child: Padding(
-            padding: EdgeInsets.only(top: 8 * scale),
+            padding: EdgeInsets.only(top: 6 * scale),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -4570,7 +4570,7 @@ class _CenterPanel extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Transform.translate(
-          offset: Offset(0, -(18.0 * scale)),
+          offset: Offset(0, -(10.0 * scale)),
           child: Column(
             children: [
               Text(
@@ -4610,9 +4610,9 @@ class _CenterPanel extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(height: 12 * scale),
-        Text('SHOT CLOCK', style: shotClockLabelStyle),
         SizedBox(height: 8 * scale),
+        Text('SHOT CLOCK', style: shotClockLabelStyle),
+        SizedBox(height: 6 * scale),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onEditShotClock == null ? null : () => onEditShotClock!(),
@@ -4717,8 +4717,8 @@ class _BalancedScoreText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final digits = text.length;
-    final adjustments = {2: 0.84, 3: 0.78, 4: 0.7};
-    final scale = adjustments[digits] ?? 0.66;
+    final adjustments = {2: 0.74, 3: 0.68, 4: 0.62};
+    final scale = adjustments[digits] ?? 0.58;
     final fontSize = targetFontSize * scale;
 
     final theme = Theme.of(context);
