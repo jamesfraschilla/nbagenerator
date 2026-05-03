@@ -426,7 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
             return Stack(
               children: [
                 Positioned(
-                  top: topSafeInset + 8,
+                  top: topSafeInset + 20,
                   right: 8,
                   child: AnimatedOpacity(
                     opacity: headerOpacity,
