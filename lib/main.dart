@@ -440,10 +440,15 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (context, constraints) {
             final isWideLayout = constraints.maxWidth >= 1100;
             final isTabletLayout = constraints.maxWidth >= 700;
+            final contentMaxWidth = constraints.maxWidth >= 1200
+                ? 760.0
+                : isTabletLayout
+                    ? 720.0
+                    : 560.0;
             final outerPadding = EdgeInsets.fromLTRB(
-              isWideLayout ? 24 : 12,
+              isWideLayout ? 20 : 12,
               8,
-              isWideLayout ? 24 : 12,
+              isWideLayout ? 20 : 12,
               16,
             );
 
@@ -459,46 +464,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         constraints: BoxConstraints(
                           minHeight:
                               constraints.maxHeight - outerPadding.vertical,
-                          maxWidth: 1440,
+                          maxWidth: contentMaxWidth,
                         ),
-                        child: isWideLayout
-                            ? Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    flex: 8,
-                                    child: _buildScoreboardSection(
-                                      maxWidth: 680,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 24),
-                                  Expanded(
-                                    flex: 5,
-                                    child: _buildControlPanel(
-                                      context,
-                                      has: has,
-                                      scenario: s,
-                                      headerOpacity: headerOpacity,
-                                      maxWidth: 520,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Column(
-                                children: [
-                                  _buildScoreboardSection(
-                                    maxWidth: isTabletLayout ? 640 : 520,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _buildControlPanel(
-                                    context,
-                                    has: has,
-                                    scenario: s,
-                                    headerOpacity: headerOpacity,
-                                    maxWidth: isTabletLayout ? 720 : 560,
-                                  ),
-                                ],
-                              ),
+                        child: Column(
+                          children: [
+                            _buildScoreboardSection(
+                              maxWidth: contentMaxWidth,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildControlPanel(
+                              context,
+                              has: has,
+                              scenario: s,
+                              headerOpacity: headerOpacity,
+                              maxWidth: contentMaxWidth,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
