@@ -333,6 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _exportingImage = false;
   bool _forceLightExportTheme = false;
   bool _shotClockManualOverride = false;
+  bool? _rangePanelExpanded = true;
   final GlobalKey _scoreboardCaptureKey = GlobalKey();
   final GlobalKey _filtersTutorialKey = GlobalKey();
   final GlobalKey _savedPresetsKey = GlobalKey();
@@ -402,26 +403,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final headerOpacity = _showAnimation ? 0.3 : 1.0;
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: AnimatedOpacity(
-          opacity: headerOpacity,
-          duration: const Duration(milliseconds: 200),
-          child: AppBar(
-            title: const SizedBox.shrink(),
-            centerTitle: false,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.history),
-                tooltip: 'History',
-                onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const HistoryScreen())),
-              ),
-            ],
-          ),
-        ),
-      ),
       body: SafeArea(
+        top: false,
+        bottom: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isWideLayout = constraints.maxWidth >= 1100;
@@ -431,15 +415,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 : isTabletLayout
                     ? 720.0
                     : 560.0;
+            final topSafeInset = MediaQuery.of(context).padding.top;
             final outerPadding = EdgeInsets.fromLTRB(
               isWideLayout ? 20 : 12,
-              8,
+              14 + topSafeInset,
               isWideLayout ? 20 : 12,
               16,
             );
 
             return Stack(
               children: [
+                Positioned(
+                  top: topSafeInset + 8,
+                  right: 8,
+                  child: AnimatedOpacity(
+                    opacity: headerOpacity,
+                    duration: const Duration(milliseconds: 200),
+                    child: IconButton(
+                      icon: const Icon(Icons.history),
+                      tooltip: 'History',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const HistoryScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 AnimatedOpacity(
                   opacity: _showAnimation ? 0.3 : 1,
                   duration: const Duration(milliseconds: 200),
@@ -522,6 +524,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: _OutsideMeta(
                     controller: controller,
                     forceLightText: _exportingImage || _forceLightExportTheme,
+                    boardWidth: maxWidth,
                   ),
                 ),
                 Padding(
@@ -578,9 +581,17 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            _buildPrimaryActions(context, has: has, scenario: scenario),
+            const SizedBox(height: 8),
             _RangeSelector(
               key: _rangeSelectorKey,
               controller: controller,
+              expanded: _rangePanelExpanded,
+              onToggleExpanded: () {
+                setState(() {
+                  _rangePanelExpanded = !(_rangePanelExpanded ?? true);
+                });
+              },
               onChanged: () => setState(() {}),
               onReset: _handleRangeReset,
               onHideShotClockChanged: _toggleHideShotClock,
@@ -591,8 +602,6 @@ class _HomeScreenState extends State<HomeScreen> {
               moreFiltersButtonKey: _moreFiltersButtonKey,
               saveFiltersButtonKey: _saveFiltersButtonKey,
             ),
-            const SizedBox(height: 8),
-            _buildPrimaryActions(context, has: has, scenario: scenario),
             const SizedBox(height: 8),
             AnimatedOpacity(
               opacity: headerOpacity,
@@ -615,12 +624,12 @@ class _HomeScreenState extends State<HomeScreen> {
         key: _generateButtonKey,
         child: OutlinedButton(
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             side: const BorderSide(color: Colors.orange, width: 2),
             foregroundColor: Colors.orange,
             textStyle: const TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 16,
+              fontSize: 15,
             ),
           ),
           onPressed: _isAnimating ? null : _handleGenerate,
@@ -634,15 +643,22 @@ class _HomeScreenState extends State<HomeScreen> {
               has && !_isAnimating ? () => _openEditScenario(scenario) : null,
           icon: const Icon(Icons.edit_outlined),
           label: const Text('EDIT'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
         ),
       ),
       TextButton(
         onPressed: () => _rangeSelectorKey.currentState?.resetFilters(),
         style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           textStyle: const TextStyle(
             fontWeight: FontWeight.w600,
-            fontSize: 16,
+            fontSize: 15,
           ),
         ),
         child: const Text('RESET'),
@@ -651,17 +667,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 560) {
-          return Column(
-            children: [
-              for (var i = 0; i < buttons.length; i++) ...[
-                SizedBox(width: double.infinity, child: buttons[i]),
-                if (i != buttons.length - 1) const SizedBox(height: 10),
-              ],
-            ],
-          );
-        }
-
         return Row(
           children: [
             Expanded(child: buttons[0]),
@@ -728,29 +733,22 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ];
 
-        if (constraints.maxWidth < 460) {
-          return Column(
-            children: [
-              for (var i = 0; i < buttons.length; i++) ...[
-                SizedBox(width: double.infinity, child: buttons[i]),
-                if (i != buttons.length - 1) const SizedBox(height: 10),
-              ],
-            ],
-          );
-        }
-
         final maxRowWidth = math.min(constraints.maxWidth, 760).toDouble();
         return Align(
           alignment: Alignment.center,
           child: SizedBox(
             width: maxRowWidth,
-            child: Row(
+            child: Column(
               children: [
-                Expanded(child: buttons[0]),
-                const SizedBox(width: 12),
-                Expanded(child: buttons[1]),
-                const SizedBox(width: 12),
-                Expanded(child: buttons[2]),
+                Row(
+                  children: [
+                    Expanded(child: buttons[0]),
+                    const SizedBox(width: 12),
+                    Expanded(child: buttons[1]),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                SizedBox(width: double.infinity, child: buttons[2]),
               ],
             ),
           ),
@@ -897,6 +895,8 @@ class _HomeScreenState extends State<HomeScreen> {
               guestTeamName: controller.guestTeamName,
               vantageSide: selectedVantage,
             );
+            final isJumpBallStart =
+                controller.scenario.startType == StartType.jumpBall;
 
             Widget vantageButton(TeamSide side, String label) {
               final isSelected = selectedVantage == side;
@@ -969,17 +969,29 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      recommendation.headline,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
+                    if (!isJumpBallStart) ...[
+                      Text(
+                        recommendation.headline,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      recommendation.summary,
-                      style: theme.textTheme.titleMedium,
-                    ),
+                      const SizedBox(height: 8),
+                      Text(
+                        recommendation.summary,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                    ] else ...[
+                      for (final note in recommendation.notes) ...[
+                        Text(
+                          note,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ],
                     const SizedBox(height: 14),
                     Container(
                       width: double.infinity,
@@ -996,14 +1008,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-                    if (recommendation.rationale != null) ...[
-                      const SizedBox(height: 14),
-                      Text(
-                        'Why: ${recommendation.rationale!}',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ],
-                    if (recommendation.notes.isNotEmpty) ...[
+                    if (!isJumpBallStart &&
+                        recommendation.notes.isNotEmpty) ...[
                       const SizedBox(height: 14),
                       for (final note in recommendation.notes)
                         Padding(
@@ -2200,6 +2206,8 @@ class _HistoryCard extends StatelessWidget {
 /// --------- Range selector and filters ---------
 class _RangeSelector extends StatefulWidget {
   final ScenarioController controller;
+  final bool? expanded;
+  final VoidCallback onToggleExpanded;
   final VoidCallback onChanged;
   final VoidCallback? onReset;
   final ValueChanged<bool> onHideShotClockChanged;
@@ -2212,6 +2220,8 @@ class _RangeSelector extends StatefulWidget {
   const _RangeSelector({
     super.key,
     required this.controller,
+    required this.expanded,
+    required this.onToggleExpanded,
     required this.onChanged,
     this.onReset,
     required this.onHideShotClockChanged,
@@ -2451,142 +2461,138 @@ class _RangeSelectorState extends State<_RangeSelector> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: InputDecorator(
-                  key: widget.savedPresetsKey,
-                  decoration: const InputDecoration(
-                    labelText: 'Saved Presets',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          InkWell(
+            onTap: widget.onToggleExpanded,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    (widget.expanded ?? true)
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 22,
                   ),
-                  child: _FavoritesMenuButton(
-                    favorites: _favorites,
-                    selectedName: _selectedFavoriteName,
-                    textStyle: favoritesTextStyle,
-                    menuWidth: favoritesMenuWidth,
-                    onSelect: _applyFavorite,
-                    onDelete: _deleteFavorite,
-                    placeholder: 'SELECT',
-                    isEnabled: _favorites.isNotEmpty,
+                  const SizedBox(width: 6),
+                  Text(
+                    'Variables & Presets',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (widget.expanded ?? true) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _filterField(
+                    context,
+                    label: 'Score',
+                    value: _scoreLabel(),
+                    onTap: _showScoreSelector,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 640) {
-                return Column(
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _filterField(
+                    context,
+                    label: 'Clock',
+                    value: _clockLabel(),
+                    onTap: _showClockSelector,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _filterField(
+                    context,
+                    label: 'Start',
+                    value: _startLabel(),
+                    onTap: _showStartSelector,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: InputDecorator(
+                    key: widget.savedPresetsKey,
+                    decoration: const InputDecoration(
+                      labelText: 'Saved Presets',
+                      border: OutlineInputBorder(),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                    child: _FavoritesMenuButton(
+                      favorites: _favorites,
+                      selectedName: _selectedFavoriteName,
+                      textStyle: favoritesTextStyle,
+                      menuWidth: favoritesMenuWidth,
+                      onSelect: _applyFavorite,
+                      onDelete: _deleteFavorite,
+                      placeholder: 'SELECT',
+                      isEnabled: _favorites.isNotEmpty,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const toggleWidth = 150.0;
+                final remaining = math
+                    .max(constraints.maxWidth - toggleWidth - 12, 0)
+                    .toDouble();
+                return Row(
                   children: [
-                    _filterField(
-                      context,
-                      label: 'Score',
-                      value: _scoreLabel(),
-                      onTap: _showScoreSelector,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: toggleWidth),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _ShotClockToggle(
+                          value: !_hideShotClock,
+                          onChanged: _handleShotClockToggle,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    _filterField(
-                      context,
-                      label: 'Clock',
-                      value: _clockLabel(),
-                      onTap: _showClockSelector,
-                    ),
-                    const SizedBox(height: 8),
-                    _filterField(
-                      context,
-                      label: 'Start',
-                      value: _startLabel(),
-                      onTap: _showStartSelector,
+                    const Spacer(),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: remaining),
+                      child: FittedBox(
+                        alignment: Alignment.centerRight,
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          children: [
+                            _FilterActionButton(
+                              key: widget.moreFiltersButtonKey,
+                              label: 'MORE',
+                              onPressed: _openMoreFilters,
+                              color: _hasAdvancedFilters
+                                  ? scheme.primary
+                                  : scheme.onSurface,
+                            ),
+                            const SizedBox(width: 4),
+                            _FilterActionButton(
+                              key: widget.saveFiltersButtonKey,
+                              label: 'SAVE',
+                              onPressed: _saveCurrentFilters,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 );
-              }
-
-              return Row(
-                children: [
-                  Expanded(
-                    child: _filterField(
-                      context,
-                      label: 'Score',
-                      value: _scoreLabel(),
-                      onTap: _showScoreSelector,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _filterField(
-                      context,
-                      label: 'Clock',
-                      value: _clockLabel(),
-                      onTap: _showClockSelector,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _filterField(
-                      context,
-                      label: 'Start',
-                      value: _startLabel(),
-                      onTap: _showStartSelector,
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              const toggleWidth = 150.0;
-              final remaining = math
-                  .max(constraints.maxWidth - toggleWidth - 12, 0)
-                  .toDouble();
-              return Row(
-                children: [
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: toggleWidth),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: _ShotClockToggle(
-                        value: !_hideShotClock,
-                        onChanged: _handleShotClockToggle,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: remaining),
-                    child: FittedBox(
-                      alignment: Alignment.centerRight,
-                      fit: BoxFit.scaleDown,
-                      child: Row(
-                        children: [
-                          _FilterActionButton(
-                            key: widget.moreFiltersButtonKey,
-                            label: 'MORE',
-                            onPressed: _openMoreFilters,
-                            color: _hasAdvancedFilters
-                                ? scheme.primary
-                                : scheme.onSurface,
-                          ),
-                          const SizedBox(width: 4),
-                          _FilterActionButton(
-                            key: widget.saveFiltersButtonKey,
-                            label: 'SAVE',
-                            onPressed: _saveCurrentFilters,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -4066,7 +4072,7 @@ class _ClockBoxStyle {
 }
 
 const double _scoreboardDesignWidth = 760;
-const double _scoreboardAspectRatio = 1.38;
+const double _scoreboardAspectRatio = 1.5;
 const double _scoreboardDesignHeight =
     _scoreboardDesignWidth / _scoreboardAspectRatio;
 
@@ -4175,7 +4181,7 @@ class _Scoreboard extends StatelessWidget {
       fontWeight: FontWeight.w800,
       letterSpacing: 1.0,
       color: Colors.white,
-      fontSize: 16,
+      fontSize: 19,
     );
     final metaLabelStyle = theme.textTheme.labelLarge?.copyWith(
       fontWeight: FontWeight.w700,
@@ -4190,8 +4196,8 @@ class _Scoreboard extends StatelessWidget {
         final boardHeight = constraints.maxHeight;
         final scale = (boardWidth / _scoreboardDesignWidth).clamp(0.48, 1.0);
         final gameClockStyle = _ClockBoxStyle(
-          width: boardWidth * 0.33,
-          height: boardHeight * 0.115,
+          width: boardWidth * 0.25,
+          height: boardHeight * 0.145,
           borderRadius: 0,
           backgroundColor: insetColor,
           textColorOverride: Colors.white,
@@ -4205,23 +4211,24 @@ class _Scoreboard extends StatelessWidget {
           textColorOverride: null,
           horizontalPadding: 8,
         );
-        final periodBoxWidth = boardWidth * 0.075;
-        final periodBoxHeight = boardHeight * 0.08;
+        final periodBoxWidth = boardWidth * 0.088;
+        final periodBoxHeight = boardHeight * 0.095;
         final teamBoxWidth = boardWidth * 0.255;
-        final teamBoxHeight = boardHeight * 0.325;
+        final teamBoxHeight = boardHeight * 0.255;
+        final teamScoreDigitSize = boardHeight * 0.1885;
         final leftTeamX = boardWidth * 0.045;
         final rightTeamX = boardWidth - leftTeamX - teamBoxWidth;
         final teamBoxTop = boardHeight * 0.215;
         final clockTop = boardHeight * 0.045;
         final scoreBoxCenterY = teamBoxTop + (teamBoxHeight / 2);
         final scoreBoxBottom = teamBoxTop + teamBoxHeight;
-        final periodGroupHeight = periodBoxHeight + 34;
+        final periodGroupHeight = periodBoxHeight + 40;
         final periodLabelTop = scoreBoxCenterY - (periodGroupHeight / 2);
-        final periodBoxTop = periodLabelTop + 34;
-        final shotClockLabelTop = scoreBoxBottom - 30;
-        final shotClockBoxTop = scoreBoxBottom;
-        final statsTop = scoreBoxBottom + (boardHeight * 0.055);
-        final timeoutTop = statsTop + (boardHeight * 0.145);
+        final periodBoxTop = periodLabelTop + 40;
+        final statsTop = scoreBoxBottom + (boardHeight * 0.085);
+        final timeoutTop = statsTop + (boardHeight * 0.165);
+        final shotClockBoxTop = statsTop + (boardHeight * 0.055);
+        final shotClockLabelTop = shotClockBoxTop - 38;
         final periodLeft = (boardWidth - periodBoxWidth) / 2;
         final shotClockLeft = (boardWidth - shotClockStyle.width) / 2;
         final showHomeArrow = showArrow && s.possessionArrow == TeamSide.home;
@@ -4271,7 +4278,7 @@ class _Scoreboard extends StatelessWidget {
                   child: _BalancedScoreText(
                     text: text,
                     baseFont: baseFont,
-                    targetFontSize: teamBoxHeight * 0.58,
+                    targetFontSize: teamScoreDigitSize,
                     color: Colors.white,
                   ),
                 ),
@@ -4294,8 +4301,8 @@ class _Scoreboard extends StatelessWidget {
                 Text(title, style: metaLabelStyle),
                 SizedBox(height: 4 * scale),
                 Container(
-                  width: boardWidth * 0.07,
-                  height: boardHeight * 0.095,
+                  width: boardWidth * 0.085,
+                  height: boardHeight * 0.115,
                   decoration: BoxDecoration(
                     color: insetColor,
                     border: Border.all(color: borderColor, width: 2),
@@ -4308,7 +4315,7 @@ class _Scoreboard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                         fontFamily: 'TimesSquare',
-                        fontSize: 28,
+                        fontSize: 34,
                       ),
                     ),
                   ),
@@ -4382,7 +4389,7 @@ class _Scoreboard extends StatelessWidget {
                       fontFeatures: const [FontFeature.tabularFigures()],
                       fontWeight: FontWeight.w700,
                       fontFamily: 'TimesSquare',
-                      fontSize: 34,
+                      fontSize: 48,
                     ),
                     styleOverrides: gameClockStyle,
                   ),
@@ -4454,7 +4461,7 @@ class _Scoreboard extends StatelessWidget {
                 width: periodBoxWidth + 48,
                 child: Center(
                     child: Text('PERIOD',
-                        style: metaLabelStyle?.copyWith(fontSize: 15))),
+                        style: metaLabelStyle?.copyWith(fontSize: 18))),
               ),
               Positioned(
                 top: periodBoxTop,
@@ -4473,7 +4480,7 @@ class _Scoreboard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                         fontFamily: 'TimesSquare',
-                        fontSize: 22,
+                        fontSize: 28,
                       ),
                     ),
                   ),
@@ -4505,7 +4512,7 @@ class _Scoreboard extends StatelessWidget {
                       color: shotClockColor,
                       fontFamily: 'TimesSquare',
                       letterSpacing: -0.4,
-                      fontSize: 56,
+                      fontSize: 64,
                     ),
                     styleOverrides: shotClockStyle,
                   ),
@@ -4646,9 +4653,11 @@ class _TimeoutDots extends StatelessWidget {
 class _OutsideMeta extends StatelessWidget {
   final ScenarioController controller;
   final bool forceLightText;
+  final double boardWidth;
   const _OutsideMeta({
     required this.controller,
     this.forceLightText = false,
+    required this.boardWidth,
   });
 
   @override
@@ -4657,19 +4666,24 @@ class _OutsideMeta extends StatelessWidget {
     final has = controller.hasScenario;
     final homeTeam = controller.homeTeamName;
     final guestTeam = controller.guestTeamName;
+    final scaledTitleSize = (boardWidth * 0.034).clamp(16.0, 28.0);
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w500,
-          fontSize: 22,
+          fontSize: scaledTitleSize,
           color: forceLightText
               ? Colors.black
               : Theme.of(context).textTheme.titleMedium?.color,
         );
+    final accentRed =
+        forceLightText ? Colors.red.shade700 : const Color(0xFFFF4B4B);
     String possessionStartText = 'Possession Start: ';
     String startTypeText = 'Start Type: ';
+    final isJumpBall = has && s.startType == StartType.jumpBall;
     if (has) {
       final String type = startTypeLabel(s.startType);
-      final String possession =
-          s.possession == TeamSide.home ? homeTeam : guestTeam;
+      final String possession = isJumpBall
+          ? 'TBD'
+          : (s.possession == TeamSide.home ? homeTeam : guestTeam);
       possessionStartText += possession;
       startTypeText += type;
     } else {
@@ -4679,7 +4693,23 @@ class _OutsideMeta extends StatelessWidget {
 
     return Column(
       children: [
-        Text(possessionStartText, style: titleStyle),
+        isJumpBall
+            ? RichText(
+                text: TextSpan(
+                  style: titleStyle,
+                  children: [
+                    const TextSpan(text: 'Possession Start: '),
+                    TextSpan(
+                      text: 'TBD',
+                      style: titleStyle?.copyWith(
+                        color: accentRed,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Text(possessionStartText, style: titleStyle),
         const SizedBox(height: 8),
         Text(startTypeText, style: titleStyle),
       ],

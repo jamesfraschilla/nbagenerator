@@ -542,12 +542,21 @@ SmartStrategyRecommendation evaluateSmartStrategy({
 
   final playMode = _buildPlayMode(scoreDiff, secondsRemaining);
   if (secondsRemaining > 60) {
+    if (playMode == null) {
+      return _normalFallbackRecommendation(
+        scenario: scenario,
+        teamLabel: teamLabel,
+        scoreDiff: scoreDiff,
+        homeTeamName: homeTeamName,
+        guestTeamName: guestTeamName,
+        isOurPossession: isOurPossession,
+      );
+    }
     return SmartStrategyRecommendation(
-      status: playMode == null ? 'monitor' : 'play-mode',
+      status: 'play-mode',
       perspectiveLabel: '$teamLabel perspective',
-      headline: playMode?.mode ?? 'Play Mode watch',
-      summary: playMode?.instruction ??
-          'No special workbook instruction in this exact play-mode state.',
+      headline: playMode.mode,
+      summary: playMode.instruction,
       stateLine: _stateLine(
         scenario: scenario,
         teamLabel: teamLabel,
@@ -557,9 +566,86 @@ SmartStrategyRecommendation evaluateSmartStrategy({
       ),
       rationale:
           'Play Mode is driven by the final 6:00 table from the workbook.',
-      notes: playMode == null
-          ? const []
-          : <String>['Mode source: Play Mode table.'],
+      notes: <String>['Mode source: Play Mode table.'],
+    );
+  }
+
+  if (scenario.startType == StartType.jumpBall) {
+    final winBranch = _instructionForState(
+      scoreDiff: scoreDiff,
+      secondsRemaining: secondsRemaining,
+      isOurPossession: true,
+      ourTimeouts: ourTimeouts,
+      opponentTimeouts: opponentTimeouts,
+      foulsToGive: foulsToGive,
+    );
+    final loseBranch = _instructionForState(
+      scoreDiff: scoreDiff,
+      secondsRemaining: secondsRemaining,
+      isOurPossession: false,
+      ourTimeouts: ourTimeouts,
+      opponentTimeouts: opponentTimeouts,
+      foulsToGive: foulsToGive,
+    );
+    return SmartStrategyRecommendation(
+      status: 'ready',
+      perspectiveLabel: '$teamLabel perspective',
+      headline: 'Jump ball branches',
+      summary:
+          'Handle both outcomes of the jump: one plan if we win possession, one if we defend.',
+      stateLine: _stateLine(
+        scenario: scenario,
+        teamLabel: teamLabel,
+        scoreDiff: scoreDiff,
+        homeTeamName: homeTeamName,
+        guestTeamName: guestTeamName,
+      ),
+      rationale:
+          'Jump ball possession is undecided, so both possession outcomes are mapped.',
+      notes: <String>[
+        'If we win jump ball: ${winBranch.$1} — ${winBranch.$2}',
+        'If we lose jump ball: ${loseBranch.$1} — ${loseBranch.$2}',
+      ],
+    );
+  }
+
+  if (scenario.startType == StartType.ftLine) {
+    final shooterSide = scenario.possession;
+    final branchNotes = <String>[];
+    for (final made in <int>[2, 1, 0]) {
+      final adjustedScoreDiff =
+          scoreDiff + (vantageSide == shooterSide ? made : -made);
+      final afterFtPossessionIsOurs = shooterSide != vantageSide;
+      final branch = _instructionForState(
+        scoreDiff: adjustedScoreDiff,
+        secondsRemaining: secondsRemaining,
+        isOurPossession: afterFtPossessionIsOurs,
+        ourTimeouts: ourTimeouts,
+        opponentTimeouts: opponentTimeouts,
+        foulsToGive: foulsToGive,
+      );
+      final marginLabel =
+          adjustedScoreDiff > 0 ? '+$adjustedScoreDiff' : '$adjustedScoreDiff';
+      branchNotes.add(
+        'If FT shooter makes $made: margin $marginLabel, then ${afterFtPossessionIsOurs ? "our ball" : "their ball"} -> ${branch.$1} — ${branch.$2}',
+      );
+    }
+    return SmartStrategyRecommendation(
+      status: 'ready',
+      perspectiveLabel: '$teamLabel perspective',
+      headline: 'FT line branches',
+      summary:
+          'Plan for all three FT outcomes, then transition to the next possession state.',
+      stateLine: _stateLine(
+        scenario: scenario,
+        teamLabel: teamLabel,
+        scoreDiff: scoreDiff,
+        homeTeamName: homeTeamName,
+        guestTeamName: guestTeamName,
+      ),
+      rationale:
+          'FT-line starts are branch states, so strategy is mapped for makes 2, makes 1, and makes 0.',
+      notes: branchNotes,
     );
   }
 
@@ -571,18 +657,13 @@ SmartStrategyRecommendation evaluateSmartStrategy({
       isOurPossession ? _offenseMatrix[band] : _defenseMatrix[band];
   final rawInstruction = bandMatrix == null ? null : bandMatrix[bucket];
   if (rawInstruction == null) {
-    return SmartStrategyRecommendation(
-      status: 'unavailable',
-      perspectiveLabel: '$teamLabel perspective',
-      headline: 'Smart Strategy unavailable',
-      summary: 'No workbook instruction matched this exact scoreboard state.',
-      stateLine: _stateLine(
-        scenario: scenario,
-        teamLabel: teamLabel,
-        scoreDiff: scoreDiff,
-        homeTeamName: homeTeamName,
-        guestTeamName: guestTeamName,
-      ),
+    return _normalFallbackRecommendation(
+      scenario: scenario,
+      teamLabel: teamLabel,
+      scoreDiff: scoreDiff,
+      homeTeamName: homeTeamName,
+      guestTeamName: guestTeamName,
+      isOurPossession: isOurPossession,
     );
   }
 
@@ -609,6 +690,59 @@ SmartStrategyRecommendation evaluateSmartStrategy({
         ? 'Direct workbook lookup from the late-game offense matrix.'
         : 'Direct workbook lookup from the late-game defense matrix.',
     notes: mapped.$3,
+  );
+}
+
+SmartStrategyRecommendation _normalFallbackRecommendation({
+  required Scenario scenario,
+  required String teamLabel,
+  required int scoreDiff,
+  required String homeTeamName,
+  required String guestTeamName,
+  required bool isOurPossession,
+}) {
+  return SmartStrategyRecommendation(
+    status: 'fallback',
+    perspectiveLabel: '$teamLabel perspective',
+    headline: isOurPossession ? 'Normal Offense' : 'Normal Defense',
+    summary: '',
+    stateLine: _stateLine(
+      scenario: scenario,
+      teamLabel: teamLabel,
+      scoreDiff: scoreDiff,
+      homeTeamName: homeTeamName,
+      guestTeamName: guestTeamName,
+    ),
+  );
+}
+
+(String, String, List<String>) _instructionForState({
+  required int scoreDiff,
+  required double secondsRemaining,
+  required bool isOurPossession,
+  required int ourTimeouts,
+  required int opponentTimeouts,
+  required int foulsToGive,
+}) {
+  final band = _workbookTimeBand(secondsRemaining);
+  final bucket = isOurPossession
+      ? _offenseScoreBucket(scoreDiff)
+      : _defenseScoreBucket(scoreDiff);
+  final bandMatrix =
+      isOurPossession ? _offenseMatrix[band] : _defenseMatrix[band];
+  final rawInstruction = bandMatrix == null ? null : bandMatrix[bucket];
+  if (rawInstruction == null) {
+    return (
+      'No mapped call',
+      'No workbook instruction matched this state.',
+      const []
+    );
+  }
+  return _mapInstruction(
+    rawInstruction,
+    ourTimeouts: ourTimeouts,
+    opponentTimeouts: opponentTimeouts,
+    foulsToGive: foulsToGive,
   );
 }
 
