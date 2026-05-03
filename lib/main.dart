@@ -562,17 +562,28 @@ class _HomeScreenState extends State<HomeScreen> {
                       horizontal: 12.0, vertical: 6.0),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      return AspectRatio(
-                        aspectRatio: _scoreboardAspectRatio,
-                        child: _Scoreboard(
-                          controller: controller,
-                          onEditTeamName: _editTeamName,
-                          onEditScore: _editScore,
-                          onEditFouls: _editFouls,
-                          onEditTimeouts: _editTimeouts,
-                          onEditGameClock: _editGameClock,
-                          onEditShotClock: _editShotClock,
-                          manualShotClockOverride: _shotClockManualOverride,
+                      return SizedBox(
+                        width: constraints.maxWidth,
+                        child: AspectRatio(
+                          aspectRatio: _scoreboardAspectRatio,
+                          child: FittedBox(
+                            fit: BoxFit.contain,
+                            child: SizedBox(
+                              width: _scoreboardDesignWidth,
+                              height: _scoreboardDesignHeight,
+                              child: _Scoreboard(
+                                controller: controller,
+                                onEditTeamName: _editTeamName,
+                                onEditScore: _editScore,
+                                onEditFouls: _editFouls,
+                                onEditTimeouts: _editTimeouts,
+                                onEditGameClock: _editGameClock,
+                                onEditShotClock: _editShotClock,
+                                manualShotClockOverride:
+                                    _shotClockManualOverride,
+                              ),
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -4089,6 +4100,8 @@ class _ClockBoxStyle {
 
 const double _scoreboardDesignWidth = 760;
 const double _scoreboardAspectRatio = 1.03;
+const double _scoreboardDesignHeight =
+    _scoreboardDesignWidth / _scoreboardAspectRatio;
 
 class _BoxedClockTight extends StatelessWidget {
   final String text;
@@ -4704,8 +4717,8 @@ class _BalancedScoreText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final digits = text.length;
-    final adjustments = {2: 1.0, 3: 0.9, 4: 0.8};
-    final scale = adjustments[digits] ?? 0.75;
+    final adjustments = {2: 0.84, 3: 0.78, 4: 0.7};
+    final scale = adjustments[digits] ?? 0.66;
     final fontSize = targetFontSize * scale;
 
     final theme = Theme.of(context);
@@ -4715,7 +4728,7 @@ class _BalancedScoreText extends StatelessWidget {
         fontFeatures: const [FontFeature.tabularFigures()],
         fontWeight: FontWeight.w900,
         color: color,
-        letterSpacing: -2.5,
+        letterSpacing: -1.5,
         fontFamily: 'TimesSquare',
         fontSize: math.max(fontSize, baseFont * scale),
       ),
