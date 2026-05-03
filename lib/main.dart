@@ -10,7 +10,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'gallery_exporter.dart';
 
-import 'edit_scenario_screen.dart';
 import 'scenario_generator.dart';
 import 'smart_strategy.dart';
 import 'storage.dart';
@@ -340,7 +339,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey _moreFiltersButtonKey = GlobalKey();
   final GlobalKey _saveFiltersButtonKey = GlobalKey();
   final GlobalKey _generateButtonKey = GlobalKey();
-  final GlobalKey _editButtonKey = GlobalKey();
   final GlobalKey _notesButtonKey = GlobalKey();
   final GlobalKey _smartStrategyButtonKey = GlobalKey();
   final GlobalKey _exportButtonKey = GlobalKey();
@@ -548,6 +546,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 onEditFouls: _editFouls,
                                 onEditTimeouts: _editTimeouts,
                                 onEditGameClock: _editGameClock,
+                                onEditPeriod: _editPeriod,
                                 onEditShotClock: _editShotClock,
                                 manualShotClockOverride:
                                     _shotClockManualOverride,
@@ -619,6 +618,9 @@ class _HomeScreenState extends State<HomeScreen> {
     required bool has,
     required Scenario scenario,
   }) {
+    final smartStrategyEnabled = has &&
+        !_isAnimating &&
+        controller.settings.competition == Competition.nba;
     final buttons = <Widget>[
       KeyedSubtree(
         key: _generateButtonKey,
@@ -637,12 +639,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       KeyedSubtree(
-        key: _editButtonKey,
+        key: _smartStrategyButtonKey,
         child: OutlinedButton.icon(
-          onPressed:
-              has && !_isAnimating ? () => _openEditScenario(scenario) : null,
-          icon: const Icon(Icons.edit_outlined),
-          label: const Text('EDIT'),
+          onPressed: smartStrategyEnabled ? _openSmartStrategy : null,
+          icon: const Icon(Icons.psychology_alt_outlined),
+          label: const Text('STRATEGY'),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 12),
             textStyle: const TextStyle(
@@ -684,9 +685,6 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context, {
     required bool has,
   }) {
-    final smartStrategyEnabled = has &&
-        !_isAnimating &&
-        controller.settings.competition == Competition.nba;
     final exportIcon = _exportingImage
         ? SizedBox(
             width: 20,
@@ -714,14 +712,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           KeyedSubtree(
-            key: _smartStrategyButtonKey,
-            child: FilledButton.icon(
-              onPressed: smartStrategyEnabled ? _openSmartStrategy : null,
-              icon: const Icon(Icons.psychology_alt_outlined),
-              label: const Text('Smart Strategy'),
-            ),
-          ),
-          KeyedSubtree(
             key: _exportButtonKey,
             child: FilledButton.icon(
               onPressed: has && !_isAnimating && !_exportingImage
@@ -738,46 +728,17 @@ class _HomeScreenState extends State<HomeScreen> {
           alignment: Alignment.center,
           child: SizedBox(
             width: maxRowWidth,
-            child: Column(
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(child: buttons[0]),
-                    const SizedBox(width: 12),
-                    Expanded(child: buttons[1]),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                SizedBox(width: double.infinity, child: buttons[2]),
+                Expanded(child: buttons[0]),
+                const SizedBox(width: 12),
+                Expanded(child: buttons[1]),
               ],
             ),
           ),
         );
       },
     );
-  }
-
-  Future<void> _openEditScenario(Scenario scenario) async {
-    final updated = await Navigator.of(context).push<Scenario>(
-      MaterialPageRoute(
-        builder: (_) => EditScenarioScreen(
-          initial: scenario,
-          competition: controller.settings.competition,
-        ),
-      ),
-    );
-    if (updated == null || !mounted) return;
-
-    setState(() {
-      if (controller.settings.competition == Competition.highSchool) {
-        controller.setForceHideShotClockHighSchool(updated.hideShotClock);
-      } else {
-        controller.setForceHideShotClockHighSchool(false);
-      }
-      controller.setScenario(updated);
-      _forceHideShotClock = updated.hideShotClock;
-      _hideShotClock = updated.hideShotClock;
-    });
   }
 
   void _handleRangeReset() {
@@ -1247,6 +1208,38 @@ class _HomeScreenState extends State<HomeScreen> {
       _shotClockManualOverride = result > 0;
       _hideShotClock = result <= 0 ? true : _hideShotClock;
     });
+  }
+
+  Future<void> _editPeriod() async {
+    if (!controller.hasScenario) return;
+    final selected = await showModalBottomSheet<Period>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final options = <(Period value, String label)>[
+          (Period.p1, 'Q1'),
+          (Period.p2, 'Q2'),
+          (Period.p3, 'Q3'),
+          (Period.p4, 'Q4'),
+          (Period.ot, 'OT'),
+        ];
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              for (final option in options)
+                ListTile(
+                  title: Text(option.$2),
+                  onTap: () => Navigator.of(context).pop(option.$1),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected == null) return;
+    controller.setScenario(controller.scenario.copyWith(period: selected));
+    setState(() {});
   }
 
   Future<String?> _promptText({
@@ -4138,6 +4131,7 @@ class _Scoreboard extends StatelessWidget {
   final Future<void> Function(TeamSide side)? onEditFouls;
   final Future<void> Function(TeamSide side)? onEditTimeouts;
   final Future<void> Function()? onEditGameClock;
+  final Future<void> Function()? onEditPeriod;
   final Future<void> Function()? onEditShotClock;
   final bool manualShotClockOverride;
   const _Scoreboard({
@@ -4147,6 +4141,7 @@ class _Scoreboard extends StatelessWidget {
     this.onEditFouls,
     this.onEditTimeouts,
     this.onEditGameClock,
+    this.onEditPeriod,
     this.onEditShotClock,
     this.manualShotClockOverride = false,
   });
@@ -4468,19 +4463,25 @@ class _Scoreboard extends StatelessWidget {
                 left: periodLeft,
                 width: periodBoxWidth,
                 height: periodBoxHeight,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: insetColor,
-                    border: Border.all(color: borderColor, width: 2),
-                  ),
-                  child: Center(
-                    child: Text(
-                      periodText,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        fontFamily: 'TimesSquare',
-                        fontSize: 28,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onEditPeriod == null || !has
+                      ? null
+                      : () => onEditPeriod!(),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: insetColor,
+                      border: Border.all(color: borderColor, width: 2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        periodText,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          fontFamily: 'TimesSquare',
+                          fontSize: 28,
+                        ),
                       ),
                     ),
                   ),
