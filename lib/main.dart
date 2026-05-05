@@ -4816,7 +4816,9 @@ class _OneShotGifState extends State<_OneShotGif>
             ),
             padding: const EdgeInsets.symmetric(horizontal: 42, vertical: 34),
             child: Center(
-              child: SizedBox.expand(
+              child: FractionallySizedBox(
+                widthFactor: 0.9,
+                heightFactor: 0.9,
                 child: FittedBox(
                   fit: BoxFit.contain,
                   child: _DotMatrixClockDisplay(
