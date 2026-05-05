@@ -919,7 +919,7 @@ String _stateLine({
     case 'BALL SECURITY & PREPARE FOR FOUL':
       return (
         'Ball security',
-        'Secure the possession and prepare for the foul game.',
+        'Protect the ball and prepare for the foul game.',
         const []
       );
     case 'NEED 3 /  / *CRASH 5*':
