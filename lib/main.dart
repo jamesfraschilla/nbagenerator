@@ -4804,22 +4804,28 @@ class _OneShotGifState extends State<_OneShotGif>
             (_controller.value * _playbackDuration.inMilliseconds).round();
         final frameIndex = _frameIndexForElapsed(elapsedMs);
         final display = _countdownLabelForFrame(frameIndex);
+        final isFinalFrame = frameIndex == _frameDurationsMs.length - 1;
+        final borderColor = isFinalFrame ? Colors.red : Colors.white;
 
         return AspectRatio(
           aspectRatio: 1.6,
           child: Container(
             color: Colors.black,
-            padding: const EdgeInsets.fromLTRB(44, 36, 44, 58),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: FittedBox(
-                fit: BoxFit.contain,
-                child: _DotMatrixClockDisplay(
-                  text: display,
-                  dotDiameter: 21,
-                  dotSpacing: 10,
-                  digitSpacing: 30,
-                  color: Colors.white,
+            decoration: BoxDecoration(
+              border: Border.all(color: borderColor, width: 18),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 42, vertical: 34),
+            child: Center(
+              child: SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: _DotMatrixClockDisplay(
+                    text: display,
+                    dotDiameter: 21,
+                    dotSpacing: 10,
+                    digitSpacing: 30,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -4839,6 +4845,8 @@ class _OneShotGifState extends State<_OneShotGif>
   }
 
   String _countdownLabelForFrame(int frameIndex) {
+    if (frameIndex <= 0) return '3.0';
+    if (frameIndex >= _frameDurationsMs.length - 1) return '0.0';
     final tenthsRemaining = math.max(1, 30 - frameIndex);
     final seconds = tenthsRemaining ~/ 10;
     final tenths = tenthsRemaining % 10;
