@@ -4730,10 +4730,41 @@ class _OneShotGif extends StatefulWidget {
 
 class _OneShotGifState extends State<_OneShotGif>
     with SingleTickerProviderStateMixin {
-  static final Duration _playbackDuration =
-      kIsWeb && defaultTargetPlatform == TargetPlatform.iOS
-          ? const Duration(milliseconds: 1800)
-          : const Duration(milliseconds: 1400);
+  static const List<int> _frameDurationsMs = <int>[
+    230,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    490,
+  ];
+  static final Duration _playbackDuration = Duration(
+    milliseconds: _frameDurationsMs.fold<int>(0, (sum, value) => sum + value),
+  );
 
   late final AnimationController _controller;
   bool _completed = false;
@@ -4766,91 +4797,238 @@ class _OneShotGifState extends State<_OneShotGif>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        final progress = _controller.value.clamp(0.0, 1.0);
-        final stage = math.min(2, (progress * 3).floor());
-        final stageProgress = ((progress * 3) - stage).clamp(0.0, 1.0);
-        final stageCurve = Curves.easeOutCubic.transform(stageProgress);
-        final countdownValue = 3 - stage;
-        final backgroundScale =
-            0.94 + (0.08 * Curves.easeInOut.transform(progress));
-        final backgroundOpacity = 0.82 - (0.12 * progress);
-        final ringScale = 0.82 + (0.55 * stageCurve);
-        final ringOpacity = 0.42 * (1 - stageCurve);
-        final numberScale = 0.72 + (0.34 * stageCurve);
-        final numberOpacity = 1 - Curves.easeIn.transform(stageProgress);
+        final elapsedMs =
+            (_controller.value * _playbackDuration.inMilliseconds).round();
+        final frameIndex = _frameIndexForElapsed(elapsedMs);
+        final display = _countdownLabelForFrame(frameIndex);
 
         return AspectRatio(
           aspectRatio: 1.6,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Transform.scale(
-                scale: backgroundScale,
-                child: Opacity(
-                  opacity: backgroundOpacity,
-                  child: Image.asset(
-                    widget.assetPath,
-                    fit: widget.fit,
-                    gaplessPlayback: true,
-                    filterQuality: FilterQuality.high,
-                  ),
+          child: Container(
+            color: Colors.black,
+            padding: const EdgeInsets.fromLTRB(44, 36, 44, 58),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: _DotMatrixClockDisplay(
+                  text: display,
+                  dotDiameter: 21,
+                  dotSpacing: 10,
+                  digitSpacing: 30,
+                  color: Colors.white,
                 ),
               ),
-              Transform.scale(
-                scale: ringScale,
-                child: Opacity(
-                  opacity: ringOpacity,
-                  child: Container(
-                    width: 180,
-                    height: 180,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFFFA726),
-                        width: 5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              const Color(0xFFFFA726).withValues(alpha: 0.28),
-                          blurRadius: 24,
-                          spreadRadius: 8,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Transform.scale(
-                scale: numberScale,
-                child: Opacity(
-                  opacity: numberOpacity.clamp(0.0, 1.0),
-                  child: Text(
-                    '$countdownValue',
-                    style: theme.textTheme.displayLarge?.copyWith(
-                      fontFamily: 'TimesSquare',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 124,
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withValues(alpha: 0.42),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  int _frameIndexForElapsed(int elapsedMs) {
+    var consumed = 0;
+    for (var index = 0; index < _frameDurationsMs.length; index += 1) {
+      consumed += _frameDurationsMs[index];
+      if (elapsedMs < consumed) return index;
+    }
+    return _frameDurationsMs.length - 1;
+  }
+
+  String _countdownLabelForFrame(int frameIndex) {
+    final tenthsRemaining = math.max(1, 30 - frameIndex);
+    final seconds = tenthsRemaining ~/ 10;
+    final tenths = tenthsRemaining % 10;
+    return '$seconds.$tenths';
+  }
+}
+
+class _DotMatrixClockDisplay extends StatelessWidget {
+  final String text;
+  final double dotDiameter;
+  final double dotSpacing;
+  final double digitSpacing;
+  final Color color;
+
+  const _DotMatrixClockDisplay({
+    required this.text,
+    required this.dotDiameter,
+    required this.dotSpacing,
+    required this.digitSpacing,
+    required this.color,
+  });
+
+  static const Map<String, List<String>> _glyphs = <String, List<String>>{
+    '0': <String>[
+      '111',
+      '101',
+      '101',
+      '101',
+      '111',
+    ],
+    '1': <String>[
+      '010',
+      '110',
+      '010',
+      '010',
+      '111',
+    ],
+    '2': <String>[
+      '111',
+      '001',
+      '111',
+      '100',
+      '111',
+    ],
+    '3': <String>[
+      '111',
+      '001',
+      '111',
+      '001',
+      '111',
+    ],
+    '4': <String>[
+      '101',
+      '101',
+      '111',
+      '001',
+      '001',
+    ],
+    '5': <String>[
+      '111',
+      '100',
+      '111',
+      '001',
+      '111',
+    ],
+    '6': <String>[
+      '111',
+      '100',
+      '111',
+      '101',
+      '111',
+    ],
+    '7': <String>[
+      '111',
+      '001',
+      '001',
+      '001',
+      '001',
+    ],
+    '8': <String>[
+      '111',
+      '101',
+      '111',
+      '101',
+      '111',
+    ],
+    '9': <String>[
+      '111',
+      '101',
+      '111',
+      '001',
+      '111',
+    ],
+    '.': <String>[
+      '0',
+      '0',
+      '0',
+      '0',
+      '1',
+    ],
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final children = <Widget>[];
+    for (var index = 0; index < text.length; index += 1) {
+      final char = text[index];
+      if (index > 0) {
+        children.add(SizedBox(width: digitSpacing));
+      }
+      children.add(
+        _DotMatrixGlyph(
+          pattern: _glyphs[char] ?? _glyphs['0']!,
+          dotDiameter: dotDiameter,
+          dotSpacing: dotSpacing,
+          color: color,
+        ),
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: children,
+    );
+  }
+}
+
+class _DotMatrixGlyph extends StatelessWidget {
+  final List<String> pattern;
+  final double dotDiameter;
+  final double dotSpacing;
+  final Color color;
+
+  const _DotMatrixGlyph({
+    required this.pattern,
+    required this.dotDiameter,
+    required this.dotSpacing,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var rowIndex = 0; rowIndex < pattern.length; rowIndex += 1) ...[
+          if (rowIndex > 0) SizedBox(height: dotSpacing),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var colIndex = 0;
+                  colIndex < pattern[rowIndex].length;
+                  colIndex += 1) ...[
+                if (colIndex > 0) SizedBox(width: dotSpacing),
+                _DotMatrixPixel(
+                  active: pattern[rowIndex][colIndex] == '1',
+                  dotDiameter: dotDiameter,
+                  color: color,
+                ),
+              ],
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DotMatrixPixel extends StatelessWidget {
+  final bool active;
+  final double dotDiameter;
+  final Color color;
+
+  const _DotMatrixPixel({
+    required this.active,
+    required this.dotDiameter,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: dotDiameter,
+      height: dotDiameter,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: active ? color : Colors.transparent,
+        ),
+      ),
     );
   }
 }

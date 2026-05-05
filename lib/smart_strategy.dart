@@ -510,7 +510,10 @@ SmartStrategyRecommendation evaluateSmartStrategy({
     );
   }
 
-  final secondsRemaining = scenario.gameClockTenths / 10.0;
+  final referenceSecondsRemaining = _referenceSecondsRemaining(
+    scenario: scenario,
+    competition: competition,
+  );
   final scoreDiff = _scoreDiffFromVantage(scenario, vantageSide);
   final teamLabel = _teamLabelForSide(vantageSide, homeTeamName, guestTeamName);
   final isOurPossession = scenario.possession == vantageSide;
@@ -524,7 +527,7 @@ SmartStrategyRecommendation evaluateSmartStrategy({
       vantageSide == TeamSide.home ? scenario.homeFouls : scenario.guestFouls;
   final foulsToGive = (4 - ourFouls).clamp(0, 4);
 
-  if (secondsRemaining > 360) {
+  if (referenceSecondsRemaining > 360) {
     return SmartStrategyRecommendation(
       status: 'inactive',
       perspectiveLabel: '$teamLabel perspective',
@@ -543,7 +546,7 @@ SmartStrategyRecommendation evaluateSmartStrategy({
   if (scenario.startType == StartType.jumpBall) {
     final winBranch = _instructionForState(
       scoreDiff: scoreDiff,
-      secondsRemaining: secondsRemaining,
+      secondsRemaining: referenceSecondsRemaining,
       isOurPossession: true,
       ourTimeouts: ourTimeouts,
       opponentTimeouts: opponentTimeouts,
@@ -551,7 +554,7 @@ SmartStrategyRecommendation evaluateSmartStrategy({
     );
     final loseBranch = _instructionForState(
       scoreDiff: scoreDiff,
-      secondsRemaining: secondsRemaining,
+      secondsRemaining: referenceSecondsRemaining,
       isOurPossession: false,
       ourTimeouts: ourTimeouts,
       opponentTimeouts: opponentTimeouts,
@@ -579,8 +582,8 @@ SmartStrategyRecommendation evaluateSmartStrategy({
     );
   }
 
-  final playMode = _buildPlayMode(scoreDiff, secondsRemaining);
-  if (secondsRemaining > 60) {
+  final playMode = _buildPlayMode(scoreDiff, referenceSecondsRemaining);
+  if (referenceSecondsRemaining > 60) {
     if (playMode == null) {
       return _normalFallbackRecommendation(
         scenario: scenario,
@@ -618,7 +621,7 @@ SmartStrategyRecommendation evaluateSmartStrategy({
       final afterFtPossessionIsOurs = shooterSide != vantageSide;
       final branch = _instructionForState(
         scoreDiff: adjustedScoreDiff,
-        secondsRemaining: secondsRemaining,
+        secondsRemaining: referenceSecondsRemaining,
         isOurPossession: afterFtPossessionIsOurs,
         ourTimeouts: ourTimeouts,
         opponentTimeouts: opponentTimeouts,
@@ -648,7 +651,7 @@ SmartStrategyRecommendation evaluateSmartStrategy({
     );
   }
 
-  final band = _workbookTimeBand(secondsRemaining);
+  final band = _workbookTimeBand(referenceSecondsRemaining);
   final bucket = isOurPossession
       ? _offenseScoreBucket(scoreDiff)
       : _defenseScoreBucket(scoreDiff);
@@ -821,6 +824,21 @@ String _workbookTimeBand(double secondsRemaining) {
   if (secondsRemaining > 1) return '0:02-0:01.1';
   if (secondsRemaining > 0.4) return '0:01-0:00.5';
   return '0:00.4-0:00.1';
+}
+
+double _referenceSecondsRemaining({
+  required Scenario scenario,
+  required Competition competition,
+}) {
+  final rules = rulesForCompetition(competition);
+  final shotClockSeconds = scenario.shotClockSeconds;
+  if (scenario.hideShotClock || scenario.shotClockBlank) {
+    return scenario.gameClockTenths / 10.0;
+  }
+  if (shotClockSeconds <= 0 || shotClockSeconds >= rules.shotClockMax) {
+    return scenario.gameClockTenths / 10.0;
+  }
+  return (scenario.gameClockTenths / 10.0) + shotClockSeconds;
 }
 
 String _offenseScoreBucket(int scoreDiff) {
