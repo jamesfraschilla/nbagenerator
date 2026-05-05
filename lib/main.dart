@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
-import 'dart:ui' as ui
-    show Codec, Image, ImageByteFormat, instantiateImageCodec;
+import 'dart:ui' as ui show Image, ImageByteFormat;
 
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
@@ -4730,53 +4729,18 @@ class _OneShotGif extends StatefulWidget {
 }
 
 class _OneShotGifState extends State<_OneShotGif> {
-  ui.Codec? _codec;
-  ui.Image? _currentImage;
-  Timer? _frameTimer;
+  static final Duration _playbackDuration =
+      kIsWeb && defaultTargetPlatform == TargetPlatform.iOS
+          ? const Duration(milliseconds: 1800)
+          : const Duration(milliseconds: 1400);
+
+  Timer? _completionTimer;
   bool _completed = false;
-  int _frameIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _decode();
-  }
-
-  Future<void> _decode() async {
-    final data = await rootBundle.load(widget.assetPath);
-    final codec = await ui.instantiateImageCodec(
-      data.buffer.asUint8List(),
-    );
-    if (!mounted) {
-      codec.dispose();
-      return;
-    }
-    _codec = codec;
-    _scheduleNextFrame();
-  }
-
-  void _scheduleNextFrame() async {
-    final codec = _codec;
-    if (codec == null) return;
-
-    final frame = await codec.getNextFrame();
-    if (!mounted) return;
-
-    setState(() {
-      _currentImage?.dispose();
-      _currentImage = frame.image;
-    });
-
-    _frameIndex++;
-    final duration = frame.duration == Duration.zero
-        ? const Duration(milliseconds: 16)
-        : frame.duration;
-
-    if (_frameIndex >= codec.frameCount) {
-      _frameTimer = Timer(duration, _notifyFinished);
-    } else {
-      _frameTimer = Timer(duration, _scheduleNextFrame);
-    }
+    _completionTimer = Timer(_playbackDuration, _notifyFinished);
   }
 
   void _notifyFinished() {
@@ -4787,25 +4751,17 @@ class _OneShotGifState extends State<_OneShotGif> {
 
   @override
   void dispose() {
-    _frameTimer?.cancel();
-    _currentImage?.dispose();
-    _codec?.dispose();
+    _completionTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final image = _currentImage;
-    if (image == null) {
-      return const SizedBox.shrink();
-    }
-    return FittedBox(
+    return Image.asset(
+      widget.assetPath,
       fit: widget.fit,
-      child: SizedBox(
-        width: image.width.toDouble(),
-        height: image.height.toDouble(),
-        child: RawImage(image: image),
-      ),
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.high,
     );
   }
 }

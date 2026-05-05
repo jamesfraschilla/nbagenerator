@@ -540,36 +540,6 @@ SmartStrategyRecommendation evaluateSmartStrategy({
     );
   }
 
-  final playMode = _buildPlayMode(scoreDiff, secondsRemaining);
-  if (secondsRemaining > 60) {
-    if (playMode == null) {
-      return _normalFallbackRecommendation(
-        scenario: scenario,
-        teamLabel: teamLabel,
-        scoreDiff: scoreDiff,
-        homeTeamName: homeTeamName,
-        guestTeamName: guestTeamName,
-        isOurPossession: isOurPossession,
-      );
-    }
-    return SmartStrategyRecommendation(
-      status: 'play-mode',
-      perspectiveLabel: '$teamLabel perspective',
-      headline: playMode.mode,
-      summary: playMode.instruction,
-      stateLine: _stateLine(
-        scenario: scenario,
-        teamLabel: teamLabel,
-        scoreDiff: scoreDiff,
-        homeTeamName: homeTeamName,
-        guestTeamName: guestTeamName,
-      ),
-      rationale:
-          'Play Mode is driven by the final 6:00 table from the workbook.',
-      notes: <String>['Mode source: Play Mode table.'],
-    );
-  }
-
   if (scenario.startType == StartType.jumpBall) {
     final winBranch = _instructionForState(
       scoreDiff: scoreDiff,
@@ -606,6 +576,36 @@ SmartStrategyRecommendation evaluateSmartStrategy({
         'If we win jump ball: ${winBranch.$1} — ${winBranch.$2}',
         'If we lose jump ball: ${loseBranch.$1} — ${loseBranch.$2}',
       ],
+    );
+  }
+
+  final playMode = _buildPlayMode(scoreDiff, secondsRemaining);
+  if (secondsRemaining > 60) {
+    if (playMode == null) {
+      return _normalFallbackRecommendation(
+        scenario: scenario,
+        teamLabel: teamLabel,
+        scoreDiff: scoreDiff,
+        homeTeamName: homeTeamName,
+        guestTeamName: guestTeamName,
+        isOurPossession: isOurPossession,
+      );
+    }
+    return SmartStrategyRecommendation(
+      status: 'play-mode',
+      perspectiveLabel: '$teamLabel perspective',
+      headline: playMode.mode,
+      summary: playMode.instruction,
+      stateLine: _stateLine(
+        scenario: scenario,
+        teamLabel: teamLabel,
+        scoreDiff: scoreDiff,
+        homeTeamName: homeTeamName,
+        guestTeamName: guestTeamName,
+      ),
+      rationale:
+          'Play Mode is driven by the final 6:00 table from the workbook.',
+      notes: const <String>[],
     );
   }
 
@@ -723,6 +723,20 @@ SmartStrategyRecommendation _normalFallbackRecommendation({
   required int opponentTimeouts,
   required int foulsToGive,
 }) {
+  if (secondsRemaining > 60) {
+    final playMode = _buildPlayMode(scoreDiff, secondsRemaining);
+    if (playMode != null) {
+      return (playMode.mode, playMode.instruction, const []);
+    }
+    return (
+      isOurPossession ? 'Normal offense' : 'Normal defense',
+      isOurPossession
+          ? 'Run normal late-game offense.'
+          : 'Stay home and finish the possession.',
+      const [],
+    );
+  }
+
   final band = _workbookTimeBand(secondsRemaining);
   final bucket = isOurPossession
       ? _offenseScoreBucket(scoreDiff)
