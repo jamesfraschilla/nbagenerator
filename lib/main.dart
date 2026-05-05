@@ -4728,19 +4728,28 @@ class _OneShotGif extends StatefulWidget {
   State<_OneShotGif> createState() => _OneShotGifState();
 }
 
-class _OneShotGifState extends State<_OneShotGif> {
+class _OneShotGifState extends State<_OneShotGif>
+    with SingleTickerProviderStateMixin {
   static final Duration _playbackDuration =
       kIsWeb && defaultTargetPlatform == TargetPlatform.iOS
           ? const Duration(milliseconds: 1800)
           : const Duration(milliseconds: 1400);
 
-  Timer? _completionTimer;
+  late final AnimationController _controller;
   bool _completed = false;
 
   @override
   void initState() {
     super.initState();
-    _completionTimer = Timer(_playbackDuration, _notifyFinished);
+    _controller = AnimationController(
+      vsync: this,
+      duration: _playbackDuration,
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _notifyFinished();
+        }
+      });
+    _controller.forward();
   }
 
   void _notifyFinished() {
@@ -4751,17 +4760,97 @@ class _OneShotGifState extends State<_OneShotGif> {
 
   @override
   void dispose() {
-    _completionTimer?.cancel();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      widget.assetPath,
-      fit: widget.fit,
-      gaplessPlayback: true,
-      filterQuality: FilterQuality.high,
+    final theme = Theme.of(context);
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final progress = _controller.value.clamp(0.0, 1.0);
+        final stage = math.min(2, (progress * 3).floor());
+        final stageProgress = ((progress * 3) - stage).clamp(0.0, 1.0);
+        final stageCurve = Curves.easeOutCubic.transform(stageProgress);
+        final countdownValue = 3 - stage;
+        final backgroundScale =
+            0.94 + (0.08 * Curves.easeInOut.transform(progress));
+        final backgroundOpacity = 0.82 - (0.12 * progress);
+        final ringScale = 0.82 + (0.55 * stageCurve);
+        final ringOpacity = 0.42 * (1 - stageCurve);
+        final numberScale = 0.72 + (0.34 * stageCurve);
+        final numberOpacity = 1 - Curves.easeIn.transform(stageProgress);
+
+        return AspectRatio(
+          aspectRatio: 1.6,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Transform.scale(
+                scale: backgroundScale,
+                child: Opacity(
+                  opacity: backgroundOpacity,
+                  child: Image.asset(
+                    widget.assetPath,
+                    fit: widget.fit,
+                    gaplessPlayback: true,
+                    filterQuality: FilterQuality.high,
+                  ),
+                ),
+              ),
+              Transform.scale(
+                scale: ringScale,
+                child: Opacity(
+                  opacity: ringOpacity,
+                  child: Container(
+                    width: 180,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFFFA726),
+                        width: 5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              const Color(0xFFFFA726).withValues(alpha: 0.28),
+                          blurRadius: 24,
+                          spreadRadius: 8,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Transform.scale(
+                scale: numberScale,
+                child: Opacity(
+                  opacity: numberOpacity.clamp(0.0, 1.0),
+                  child: Text(
+                    '$countdownValue',
+                    style: theme.textTheme.displayLarge?.copyWith(
+                      fontFamily: 'TimesSquare',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 124,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withValues(alpha: 0.42),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
