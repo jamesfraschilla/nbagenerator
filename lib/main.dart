@@ -439,6 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             child: _buildScoreboardSection(
                               maxWidth: contentMaxWidth,
+                              showOutsideMeta: false,
                             ),
                           ),
                         )
@@ -558,7 +559,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildScoreboardSection({required double maxWidth}) {
+  Widget _buildScoreboardSection({
+    required double maxWidth,
+    bool showOutsideMeta = true,
+  }) {
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
@@ -572,14 +576,16 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                  child: _OutsideMeta(
-                    controller: controller,
-                    forceLightText: _exportingImage || _forceLightExportTheme,
-                    boardWidth: maxWidth,
+                if (showOutsideMeta)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                    child: _OutsideMeta(
+                      controller: controller,
+                      forceLightText:
+                          _exportingImage || _forceLightExportTheme,
+                      boardWidth: maxWidth,
+                    ),
                   ),
-                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12.0, vertical: 6.0),
