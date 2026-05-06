@@ -604,6 +604,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 controller: controller,
                                 onEditTeamName: _editTeamName,
                                 onEditScore: _editScore,
+                                onIncrementScore: _incrementScore,
                                 onEditFouls: _editFouls,
                                 onEditTimeouts: _editTimeouts,
                                 onEditGameClock: _editGameClock,
@@ -1172,6 +1173,17 @@ class _HomeScreenState extends State<HomeScreen> {
       controller.updateHomeScore(result);
     } else {
       controller.updateGuestScore(result);
+    }
+    setState(() {});
+  }
+
+  void _incrementScore(TeamSide side) {
+    if (!controller.hasScenario) return;
+    final scenario = controller.scenario;
+    if (side == TeamSide.home) {
+      controller.updateHomeScore(scenario.homeScore + 1);
+    } else {
+      controller.updateGuestScore(scenario.guestScore + 1);
     }
     setState(() {});
   }
@@ -4177,10 +4189,78 @@ class _BoxedClockTight extends StatelessWidget {
   }
 }
 
+class _TimedScorePressTarget extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  const _TimedScorePressTarget({
+    required this.child,
+    this.onTap,
+    this.onLongPress,
+  });
+
+  @override
+  State<_TimedScorePressTarget> createState() => _TimedScorePressTargetState();
+}
+
+class _TimedScorePressTargetState extends State<_TimedScorePressTarget> {
+  static const Duration _holdDuration = Duration(milliseconds: 800);
+  Timer? _holdTimer;
+  bool _longPressTriggered = false;
+
+  void _startHoldTimer() {
+    _cancelHoldTimer();
+    _longPressTriggered = false;
+    if (widget.onLongPress == null) return;
+    _holdTimer = Timer(_holdDuration, () {
+      _longPressTriggered = true;
+      widget.onLongPress?.call();
+    });
+  }
+
+  void _finishPress() {
+    final shouldTap = !_longPressTriggered;
+    _cancelHoldTimer();
+    if (shouldTap) {
+      widget.onTap?.call();
+    }
+    _longPressTriggered = false;
+  }
+
+  void _cancelPress() {
+    _cancelHoldTimer();
+    _longPressTriggered = false;
+  }
+
+  void _cancelHoldTimer() {
+    _holdTimer?.cancel();
+    _holdTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _cancelHoldTimer();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _startHoldTimer(),
+      onTapUp: (_) => _finishPress(),
+      onTapCancel: _cancelPress,
+      child: widget.child,
+    );
+  }
+}
+
 class _Scoreboard extends StatelessWidget {
   final ScenarioController controller;
   final Future<void> Function(TeamSide side)? onEditTeamName;
   final Future<void> Function(TeamSide side)? onEditScore;
+  final void Function(TeamSide side)? onIncrementScore;
   final Future<void> Function(TeamSide side)? onEditFouls;
   final Future<void> Function(TeamSide side)? onEditTimeouts;
   final Future<void> Function()? onEditGameClock;
@@ -4191,6 +4271,7 @@ class _Scoreboard extends StatelessWidget {
     required this.controller,
     this.onEditTeamName,
     this.onEditScore,
+    this.onIncrementScore,
     this.onEditFouls,
     this.onEditTimeouts,
     this.onEditGameClock,
@@ -4305,12 +4386,14 @@ class _Scoreboard extends StatelessWidget {
 
         Widget buildScoreBox({
           required String text,
-          required Future<void> Function()? onTap,
+          required VoidCallback? onIncrement,
+          required Future<void> Function()? onLongPressEdit,
         }) {
           final baseFont = theme.textTheme.displayLarge?.fontSize ?? 60;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onTap == null ? null : () => onTap(),
+          return _TimedScorePressTarget(
+            onTap: onIncrement,
+            onLongPress:
+                onLongPressEdit == null ? null : () => onLongPressEdit(),
             child: Container(
               decoration: BoxDecoration(
                 color: insetColor,
@@ -4468,7 +4551,10 @@ class _Scoreboard extends StatelessWidget {
                 height: teamBoxHeight,
                 child: buildScoreBox(
                   text: has ? '${s.homeScore}' : '––',
-                  onTap: onEditScore == null || !has
+                  onIncrement: onIncrementScore == null || !has
+                      ? null
+                      : () => onIncrementScore!(TeamSide.home),
+                  onLongPressEdit: onEditScore == null || !has
                       ? null
                       : () => onEditScore!(TeamSide.home),
                 ),
@@ -4498,7 +4584,10 @@ class _Scoreboard extends StatelessWidget {
                 height: teamBoxHeight,
                 child: buildScoreBox(
                   text: has ? '${s.guestScore}' : '––',
-                  onTap: onEditScore == null || !has
+                  onIncrement: onIncrementScore == null || !has
+                      ? null
+                      : () => onIncrementScore!(TeamSide.guest),
+                  onLongPressEdit: onEditScore == null || !has
                       ? null
                       : () => onEditScore!(TeamSide.guest),
                 ),
