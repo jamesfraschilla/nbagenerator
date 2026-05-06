@@ -480,33 +480,26 @@ class ScenarioController {
   }
 
   void updateHomeFouls(int value) {
-    final rules = currentRules;
     _updateScenario(
-      (s) => s.copyWith(homeFouls: _clamp(value, rules.foulMin, rules.foulMax)),
+      (s) => s.copyWith(homeFouls: _clamp(value, 0, currentRules.foulMax)),
     );
   }
 
   void updateGuestFouls(int value) {
-    final rules = currentRules;
     _updateScenario(
-      (s) =>
-          s.copyWith(guestFouls: _clamp(value, rules.foulMin, rules.foulMax)),
+      (s) => s.copyWith(guestFouls: _clamp(value, 0, currentRules.foulMax)),
     );
   }
 
   void updateHomeTimeouts(int value) {
-    final rules = currentRules;
     _updateScenario(
-      (s) => s.copyWith(
-          homeTimeouts: _clamp(value, rules.timeoutMin, rules.timeoutMax)),
+      (s) => s.copyWith(homeTimeouts: _clamp(value, 0, 5)),
     );
   }
 
   void updateGuestTimeouts(int value) {
-    final rules = currentRules;
     _updateScenario(
-      (s) => s.copyWith(
-          guestTimeouts: _clamp(value, rules.timeoutMin, rules.timeoutMax)),
+      (s) => s.copyWith(guestTimeouts: _clamp(value, 0, 5)),
     );
   }
 
