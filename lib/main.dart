@@ -4221,7 +4221,7 @@ class _Scoreboard extends StatelessWidget {
       fontWeight: FontWeight.w800,
       letterSpacing: 1.0,
       color: Colors.white,
-      fontSize: 19,
+      fontSize: 24,
     );
     final metaLabelStyle = theme.textTheme.labelLarge?.copyWith(
       fontWeight: FontWeight.w700,
@@ -4266,7 +4266,7 @@ class _Scoreboard extends StatelessWidget {
         final periodLabelTop = scoreBoxCenterY - (periodGroupHeight / 2);
         final periodBoxTop = periodLabelTop + 40;
         final statsTop = scoreBoxBottom + (boardHeight * 0.085);
-        final timeoutTop = statsTop + (boardHeight * 0.165);
+        final timeoutTop = statsTop + (boardHeight * 0.205);
         final shotClockBoxTop = statsTop + (boardHeight * 0.055);
         final shotClockLabelTop = shotClockBoxTop - 38;
         final periodLeft = (boardWidth - periodBoxWidth) / 2;
