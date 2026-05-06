@@ -334,6 +334,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _forceLightExportTheme = false;
   bool _shotClockManualOverride = false;
   bool? _rangePanelExpanded = true;
+  bool _isFullscreen = false;
   final GlobalKey _scoreboardCaptureKey = GlobalKey();
   final GlobalKey _filtersTutorialKey = GlobalKey();
   final GlobalKey _savedPresetsKey = GlobalKey();
@@ -424,52 +425,57 @@ class _HomeScreenState extends State<HomeScreen> {
 
             return Stack(
               children: [
-                Positioned(
-                  top: topSafeInset + 20,
-                  right: 8,
-                  child: AnimatedOpacity(
-                    opacity: headerOpacity,
-                    duration: const Duration(milliseconds: 200),
-                    child: IconButton(
-                      icon: const Icon(Icons.history),
-                      tooltip: 'History',
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const HistoryScreen(),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
                 AnimatedOpacity(
                   opacity: _showAnimation ? 0.3 : 1,
                   duration: const Duration(milliseconds: 200),
-                  child: SingleChildScrollView(
-                    padding: outerPadding,
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight:
-                              constraints.maxHeight - outerPadding.vertical,
-                          maxWidth: contentMaxWidth,
-                        ),
-                        child: Column(
-                          children: [
-                            _buildScoreboardSection(
+                  child: _isFullscreen
+                      ? Center(
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              outerPadding.left,
+                              topSafeInset + 48,
+                              outerPadding.right,
+                              outerPadding.bottom,
+                            ),
+                            child: _buildScoreboardSection(
                               maxWidth: contentMaxWidth,
                             ),
-                            const SizedBox(height: 12),
-                            _buildControlPanel(
-                              context,
-                              has: has,
-                              scenario: s,
-                              headerOpacity: headerOpacity,
-                              maxWidth: contentMaxWidth,
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          padding: outerPadding,
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight -
+                                    outerPadding.vertical,
+                                maxWidth: contentMaxWidth,
+                              ),
+                              child: Column(
+                                children: [
+                                  _buildScoreboardSection(
+                                    maxWidth: contentMaxWidth,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildControlPanel(
+                                    context,
+                                    has: has,
+                                    scenario: s,
+                                    headerOpacity: headerOpacity,
+                                    maxWidth: contentMaxWidth,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
+                ),
+                Positioned(
+                  top: topSafeInset + 20,
+                  right: 8,
+                  child: _buildTopRightButtons(
+                    context,
+                    headerOpacity: headerOpacity,
                   ),
                 ),
                 if (_showAnimation)
@@ -499,6 +505,51 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopRightButtons(
+    BuildContext context, {
+    required double headerOpacity,
+  }) {
+    final theme = Theme.of(context);
+    return AnimatedOpacity(
+      opacity: headerOpacity,
+      duration: const Duration(milliseconds: 200),
+      child: Material(
+        color: Colors.transparent,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!_isFullscreen)
+              IconButton(
+                icon: const Icon(Icons.history),
+                tooltip: 'History',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const HistoryScreen(),
+                  ),
+                ),
+              ),
+            IconButton(
+              icon: Icon(
+                _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+              ),
+              tooltip: _isFullscreen ? 'Exit Full Screen' : 'Full Screen',
+              style: IconButton.styleFrom(
+                backgroundColor: theme.colorScheme.surface.withValues(
+                  alpha: 0.16,
+                ),
+              ),
+              onPressed: () {
+                setState(() {
+                  _isFullscreen = !_isFullscreen;
+                });
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -4811,28 +4862,46 @@ class _OneShotGifState extends State<_OneShotGif>
           aspectRatio: 1.6,
           child: Padding(
             padding: const EdgeInsets.all(22),
-            child: Container(
-              color: Colors.black,
-              decoration: BoxDecoration(
-                border: Border.all(color: borderColor, width: 18),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 42, vertical: 34),
-              child: Center(
-                child: FractionallySizedBox(
-                  widthFactor: 0.9,
-                  heightFactor: 0.9,
-                  child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: _DotMatrixClockDisplay(
-                      text: display,
-                      dotDiameter: 21,
-                      dotSpacing: 10,
-                      digitSpacing: 30,
-                      color: Colors.white,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      border: Border.all(color: borderColor, width: 18),
                     ),
                   ),
                 ),
-              ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 42, vertical: 34),
+                  child: Center(
+                    child: FractionallySizedBox(
+                      widthFactor: 0.9,
+                      heightFactor: 0.9,
+                      child: FittedBox(
+                        fit: BoxFit.contain,
+                        child: _DotMatrixClockDisplay(
+                          text: display,
+                          dotDiameter: 21,
+                          dotSpacing: 10,
+                          digitSpacing: 30,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: borderColor, width: 18),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
