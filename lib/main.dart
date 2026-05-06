@@ -4809,24 +4809,27 @@ class _OneShotGifState extends State<_OneShotGif>
 
         return AspectRatio(
           aspectRatio: 1.6,
-          child: Container(
-            color: Colors.black,
-            decoration: BoxDecoration(
-              border: Border.all(color: borderColor, width: 18),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 42, vertical: 34),
-            child: Center(
-              child: FractionallySizedBox(
-                widthFactor: 0.9,
-                heightFactor: 0.9,
-                child: FittedBox(
-                  fit: BoxFit.contain,
-                  child: _DotMatrixClockDisplay(
-                    text: display,
-                    dotDiameter: 21,
-                    dotSpacing: 10,
-                    digitSpacing: 30,
-                    color: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Container(
+              color: Colors.black,
+              decoration: BoxDecoration(
+                border: Border.all(color: borderColor, width: 18),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 42, vertical: 34),
+              child: Center(
+                child: FractionallySizedBox(
+                  widthFactor: 0.9,
+                  heightFactor: 0.9,
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: _DotMatrixClockDisplay(
+                      text: display,
+                      dotDiameter: 21,
+                      dotSpacing: 10,
+                      digitSpacing: 30,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
