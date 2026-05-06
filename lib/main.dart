@@ -515,6 +515,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required double headerOpacity,
   }) {
     final theme = Theme.of(context);
+    final iconColor = widget.isDarkMode ? Colors.white : Colors.black87;
     return AnimatedOpacity(
       opacity: headerOpacity,
       duration: const Duration(milliseconds: 200),
@@ -525,11 +526,12 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             if (!_isFullscreen)
               IconButton(
-                icon: const Icon(Icons.history),
-                tooltip: 'History',
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const HistoryScreen(),
+              icon: const Icon(Icons.history),
+              tooltip: 'History',
+              color: iconColor,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const HistoryScreen(),
                   ),
                 ),
               ),
@@ -542,6 +544,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundColor: theme.colorScheme.surface.withValues(
                   alpha: 0.16,
                 ),
+                foregroundColor: iconColor,
               ),
               onPressed: () {
                 setState(() {
@@ -1176,7 +1179,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await _promptInt(
       title: side == TeamSide.home ? 'Edit Home Fouls' : 'Edit Guest Fouls',
       initialValue: current,
-      min: rules.foulMin,
+      min: 0,
       max: rules.foulMax,
     );
     if (result == null) return;
@@ -1190,7 +1193,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _editTimeouts(TeamSide side) async {
     if (!controller.hasScenario) return;
-    final rules = controller.currentRules;
     final scenario = controller.scenario;
     final current =
         side == TeamSide.home ? scenario.homeTimeouts : scenario.guestTimeouts;
@@ -1198,8 +1200,8 @@ class _HomeScreenState extends State<HomeScreen> {
       title:
           side == TeamSide.home ? 'Edit Home Timeouts' : 'Edit Guest Timeouts',
       initialValue: current,
-      min: rules.timeoutMin,
-      max: rules.timeoutMax,
+      min: 0,
+      max: 5,
     );
     if (result == null) return;
     if (side == TeamSide.home) {
